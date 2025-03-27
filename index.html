@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>展示型魔方</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container"></div>
+    <div id="controls">
+        <div class="control-group">
+            <label for="rotationSpeed">旋转速度: <span id="speedValue">0.78</span></label>
+            <input type="range" id="rotationSpeed" min="0" max="2" step="0.01" value="0.78">
+        </div>
+    </div>
+    <script type="module" src="mkb.js"></script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #1a1a1a;
+    font-family: 'Arial', sans-serif;
+}
+
+#container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#controls {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px 25px;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: white;
+}
+
+label {
+    font-size: 14px;
+    color: #ffffff;
+}
+
+input[type="range"] {
+    width: 200px;
+    height: 4px;
+    background: #444;
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #2196F3;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #1976D2;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #2196F3;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: background 0.3s;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: #1976D2;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 16px;
+    background: linear-gradient(45deg, #2196F3, #1976D2);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+button:hover {
+    background: linear-gradient(45deg, #1976D2, #1565C0);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+#scramble {
+    background: linear-gradient(45deg, #FF5722, #F4511E);
+}
+
+#scramble:hover {
+    background: linear-gradient(45deg, #F4511E, #E64A19);
+}
+
+#reset {
+    background: linear-gradient(45deg, #4CAF50, #388E3C);
+}
+
+#reset:hover {
+    background: linear-gradient(45deg, #388E3C, #2E7D32);
+}
