@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 
-export function createMerkaba(color1,color2) {
+export function createMerkaba2(color1,color2) {
   const group = new THREE.Group();
 
   // 定义两个正四面体的顶点（共8个）
   const upperVertices = new Float32Array([
     // 上四面体（顺时针）
-    1, 1, 1,   // 0
-    -1, -1, 1,   // 1
-    -1, 1, -1,   // 2
-    1, -1, -1,   // 3
+    2.414, 2.414, 2.414,   // 0
+    -2.414, -2.414, 2.414,   // 1
+    -2.414, 2.414, -2.414,   // 2
+    2.414, -2.414, -2.414,   // 3
   ]);
   const lowerVertices = upperVertices.map(x => -x);
 
@@ -37,7 +37,7 @@ export function createMerkaba(color1,color2) {
     color: 0xFF6B6B, // 珊瑚红
     side: THREE.DoubleSide, // 可选：双面渲染
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.3,
     emissive: color1 || 'purple',  // 自发光红色边缘
     emissiveIntensity: 2,
   });
@@ -45,7 +45,7 @@ export function createMerkaba(color1,color2) {
     color: 0x4ECDC4, // 蒂芙尼蓝
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.3,
     emissive: color2 || 0x4ECDC4,  // 自发光红色边缘
     emissiveIntensity: 5,
   });

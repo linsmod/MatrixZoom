@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { createMerkaba } from './mkb';
 import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
+import { createMerkaba2 } from './mkb2';
 // 场景设置
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1a); // 深色背景
@@ -118,9 +119,9 @@ function createTextSprite(text, color, position) {
 }
 
 // 添加坐标轴标注
-const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(3, 0, 0));
-const yLabel = createTextSprite('Y', '#00ff00', new THREE.Vector3(0, 3, 0));
-const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0, 3));
+const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(6.1, 0, 0));
+const yLabel = createTextSprite('Y', '#00ff00', new THREE.Vector3(0, 6.1, 0));
+const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0, 6.1));
 
 scene.add(xLabel);
 scene.add(yLabel);
@@ -148,7 +149,7 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.screenSpacePanning = false;
 controls.minDistance = 3;
-controls.maxDistance = 10;
+controls.maxDistance = 15;
 controls.maxPolarAngle = Math.PI / 2;
 camera.position.set(5, 5, 5);
 controls.update();
@@ -250,7 +251,8 @@ function alignDiagonalToZAxis() {
 }
 
 alignDiagonalToZAxis(); // 执行旋转
-
+const merkaba2 = createMerkaba2('blue', 'orange');
+cubeGroup.add(merkaba2);
 
 scene.add(cubeGroup);
 
@@ -356,7 +358,7 @@ outlineEffect.enabled = true; // 启用轮廓效果
 outlineEffect.autoClear = false; // 设置是否自动清除之前的渲染结果，通常设置为false以保持之前的渲染结果不变。
 
 // 旋转速度控制
-let rotationSpeed = 0.78;
+let rotationSpeed = 0.01;
 const speedSlider = document.getElementById('rotationSpeed');
 const speedValue = document.getElementById('speedValue');
 
@@ -365,9 +367,8 @@ speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = rotationSpeed.toFixed(2);
 });
 
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
+function rotateMkb(merkaba) {
+
 
     const upperTetra = merkaba.children[0];
     const lowerTetra = merkaba.children[1];
@@ -378,11 +379,11 @@ function animate() {
     const quaternion = new THREE.Quaternion();
 
     // 上四面体顺时针旋转
-    quaternion.setFromAxisAngle(axis, rotationSpeed * 2);
+    quaternion.setFromAxisAngle(axis, rotationSpeed * 1);
     upperTetra.quaternion.multiplyQuaternions(quaternion, upperTetra.quaternion);
 
     // 下四面体逆时针旋转
-    quaternion.setFromAxisAngle(axis, -rotationSpeed * 2);
+    quaternion.setFromAxisAngle(axis, -rotationSpeed * 3);
     lowerTetra.quaternion.multiplyQuaternions(quaternion, lowerTetra.quaternion);
 
     // 强制更新边和法线
@@ -391,7 +392,14 @@ function animate() {
             child.geometry.computeVertexNormals(); // 更新法线
         }
     });
+}
 
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+
+    rotateMkb(merkaba);
+    rotateMkb(merkaba2);
     renderer.render(scene, camera);
 
     // outlineEffect.render(scene, camera);
