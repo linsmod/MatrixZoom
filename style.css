@@ -71,7 +71,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 #controls:hover {
-    box-shadow: 0 0 15px rgba(156, 39, 176, 1), 0 0 30px rgba(156, 39, 176, 0.5);
+    box-shadow: 0 0 15px rgba(156, 39, 176, 1), 0 0 10px rgba(156, 39, 176, 0.5);
 }
 
 input[type="range"]::-moz-range-thumb {
