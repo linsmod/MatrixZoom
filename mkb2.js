@@ -59,7 +59,7 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
         color: 0xFF6B6B, // 珊瑚红
         side: THREE.DoubleSide,
         emissive: color1,
-        emissiveIntensity: 2,
+        emissiveIntensity: 0.5, // 降低发光强度
         polygonOffset: true,
         polygonOffsetFactor: 1,
         polygonOffsetUnits: 1,
@@ -71,7 +71,7 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
         color: 0x4ECDC4, // 蒂芙尼蓝
         side: THREE.DoubleSide,
         emissive: color2,
-        emissiveIntensity: 5,
+        emissiveIntensity: 0.8, // 降低发光强度
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: 1,
@@ -83,36 +83,24 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
 // 保留原函数用于创建控制用的本体（不可见，仅用于计算）
 export function createMerkaba2(color1, color2) {
   const group = new THREE.Group();
+  const templates = getMerkabaTemplates(color1, color2);
 
-  const upperGeo = createUpperTetraGeometry();
-  const lowerGeo = createLowerTetraGeometry();
-
-  // 创建材质和网格（用于控制，不显示）
-  const upperMaterial = new THREE.MeshPhongMaterial({
-    color: 0xFF6B6B,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0, // 不可见，仅用于计算
-    emissive: color1 || 'purple',
-    emissiveIntensity: 2,
-    polygonOffset: true,
-    polygonOffsetFactor: 1,
-    polygonOffsetUnits: 1,
-  });
-  const lowerMaterial = new THREE.MeshPhongMaterial({
-    color: 0x4ECDC4,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0, // 不可见，仅用于计算
-    emissive: color2 || 0x4ECDC4,
-    emissiveIntensity: 5,
-    polygonOffset: true,
-    polygonOffsetFactor: -1,
-    polygonOffsetUnits: 1,
-  });
-
-  const upperMesh = new THREE.Mesh(upperGeo, upperMaterial);
-  const lowerMesh = new THREE.Mesh(lowerGeo, lowerMaterial);
+  const upperMesh = new THREE.Mesh(
+    templates.upperTetra.geometry,
+    new THREE.MeshPhongMaterial({
+      ...templates.upperTetra.materialConfig,
+      transparent: true,
+      opacity: 0, // 不可见，仅用于计算
+    })
+  );
+  const lowerMesh = new THREE.Mesh(
+    templates.lowerTetra.geometry,
+    new THREE.MeshPhongMaterial({
+      ...templates.lowerTetra.materialConfig,
+      transparent: true,
+      opacity: 0, // 不可见，仅用于计算
+    })
+  );
 
   group.add(upperMesh);
   group.add(lowerMesh);

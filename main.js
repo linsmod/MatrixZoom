@@ -827,17 +827,20 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.01 : 0.1;
     const delta = e.deltaY > 0 ? -step : step;
-    let newValue =rotationFrequency + delta;
-    rotationFrequency = newValue;
-    rotationSpeed = rotationFrequency * Math.PI * 2;
-    if(rotationSpeed<0){
-        rotationSpeed = 0;
+    let roteFreq =rotationFrequency + delta;
+    let roteSpeed = roteFreq * Math.PI * 2;
+    if(roteSpeed<0){
+        roteSpeed = 0;
+        return;
     }
-    else if(rotationSpeed>1000){
-        rotationSpeed = 1000;
+    else if(roteSpeed>1000){
+        roteSpeed = 1000;
     }
-    speedSlider.value = newValue;
-    speedValue.textContent = newValue.toFixed(2);
+    rotationFrequency = roteFreq;
+    rotationSpeed = roteSpeed;
+    speedSlider.value = roteFreq;
+    speedValue.textContent = roteFreq.toFixed(2);
+    simulateFrame();
 });
 
 // 空格键控制旋转暂停/继续
