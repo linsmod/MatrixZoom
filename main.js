@@ -618,7 +618,7 @@ cubeGroup.add(groupLight);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const simulationSystem = new SimulationSystem(scene, 200, 200); // mesh最大200个，line最大200个
+const simulationSystem = new SimulationSystem(scene, 120, 200); // mesh最大200个，line最大200个
 
 // 注册梅尔卡巴模板
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
@@ -1097,22 +1097,22 @@ document.getElementById('controls').addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.01 : 0.1;
     const delta = e.deltaY > 0 ? -step : step;
+    const minFreq = parseFloat(speedSlider.getAttribute('min'));
+    const maxFreq = parseFloat(speedSlider.getAttribute('max'));
     let roteFreq = rotationFrequency + delta;
-    let roteSpeed = roteFreq * Math.PI * 2;
-    let maxSpeed = parseFloat(speedSlider.getAttribute('max'));
-    if(roteSpeed<0){
-        roteSpeed = parseFloat(speedSlider.getAttribute('min'));
-        return;
+    // 限制频率在 min-max 范围内
+    if(roteFreq < minFreq){
+        roteFreq = minFreq;
     }
-    else if(roteSpeed>maxSpeed){
-        roteSpeed = maxSpeed;
+    else if(roteFreq > maxFreq){
+        roteFreq = maxFreq;
     }
     rotationFrequency = roteFreq;
-    rotationSpeed = roteSpeed;
+    rotationSpeed = roteFreq * Math.PI * 2;
     speedSlider.value = roteFreq;
     speedValue.textContent = roteFreq.toFixed(2);
     if(paused)
-        pendingTempFrames = parseInt(rotationFreq*tempCycle);
+        pendingTempFrames = parseInt(rotationFrequency*tempCycle);
     saveParamsToURL();
 });
 
