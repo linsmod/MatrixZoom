@@ -751,7 +751,7 @@ function setTiltAngles(angleZDegrees, angleXDegrees) {
     
     // 先绕世界Z轴旋转（向右侧X轴正方向倾斜）
     const worldForward = new THREE.Vector3(0, 0, 1);
-    cubeGroup.rotateOnWorldAxis(worldForward, THREE.MathUtils.degToRad(angleZDegrees));
+    cubeGroup.rotateOnWorldAxis(worldForward, THREE.MathUtils.degToRad(-angleZDegrees));
     
     // 再绕世界X轴旋转（向前/后倾斜）
     const worldRight = new THREE.Vector3(1, 0, 0);
@@ -892,7 +892,7 @@ function loadParamsFromURL() {
     // 解析Z轴倾斜角
     if (params.has('tiltZ')) {
         const tiltZ = parseFloat(params.get('tiltZ'));
-        if (!isNaN(tiltZ) && tiltZ >= 0 && tiltZ <= 90) {
+        if (!isNaN(tiltZ) && tiltZ >= -90 && tiltZ <= 90) {
             currentTiltAngleZ = tiltZ;
             tiltAngleZSlider.value = tiltZ.toFixed(1);
             tiltAngleZValueLabel.textContent = tiltZ.toFixed(1);
