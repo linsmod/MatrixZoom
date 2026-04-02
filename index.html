@@ -28,28 +28,28 @@
             <div id="controlModeDisplay">相机控制</div>
         </div>
         <div class="sidebar-group">
-            <label for="emissiveIntensity">发光强度: <span id="emissiveValue">0.00</span></label>
-            <input type="range" id="emissiveIntensity" min="0" max="0.1" step="0.001" value="0">
+            <label for="emissiveIntensity">发光强度: <span id="emissiveValue">100</span></label>
+            <input type="range" id="emissiveIntensity" min="20" max="800" step="1" value="300">
         </div>
         <div class="sidebar-group fps-display">
             <label>帧率监控</label>
             <div class="fps-row">
-                <span class="fps-label">模拟:</span>
+                <span class="fps-label">模拟速度:</span>
                 <span id="simFPS" class="fps-value">0</span>
                 <span class="fps-unit">FPS</span>
             </div>
             <div class="fps-row">
-                <span class="fps-label">渲染:</span>
+                <span class="fps-label">渲染采样:</span>
                 <span id="renderFPS" class="fps-value">0</span>
                 <span class="fps-unit">FPS</span>
             </div>
             <div class="fps-row">
-                <span class="fps-label">频率:</span>
+                <span class="fps-label">旋转频率:</span>
                 <span id="simFreq" class="fps-value">0.00</span>
                 <span class="fps-unit">Hz</span>
             </div>
             <div class="fps-row">
-                <span class="fps-label">Mkb:</span>
+                <span class="fps-label">残影数量:</span>
                 <span id="ghostCount" class="fps-value">0</span>
                 <span class="fps-unit">个</span>
             </div>

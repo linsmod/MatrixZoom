@@ -141,16 +141,6 @@ class SimulationSystem {
         this.addMeshSnapshot('lowerTetra', lowerMatrix, baseOpacity, lifetime);
     }
 
-    // 移除最老的影子
-    _removeOldest() {
-        const oldest = this.ghosts.shift();
-        if (oldest) {
-            this.ghostGroup.remove(oldest.object);
-            oldest.object.geometry.dispose();
-            oldest.object.material.dispose();
-        }
-    }
-
     // 移除最老的mesh影子
     _removeOldestMesh() {
         const meshIndex = this.ghosts.findIndex(g => g.type === 'mesh');
@@ -175,7 +165,6 @@ class SimulationSystem {
 
     // 推进模拟一步
     simulationUpdateAnim() {
-        this.frames++;
         // 更新所有影子的透明度衰减
         for (let i = this.ghosts.length - 1; i >= 0; i--) {
             const ghostData = this.ghosts[i];
@@ -445,9 +434,9 @@ function createTextSprite(text, color, position) {
 }
 
 // 添加坐标轴标注
-const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(6.1, 0, 0));
-const yLabel = createTextSprite('Y', '#00ff00', new THREE.Vector3(0, 6.1, 0));
-const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0, 6.1));
+const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(12, 0, 0));
+const yLabel = createTextSprite('Y', '#00ff00', new THREE.Vector3(0, 12, 0));
+const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0, 12));
 
 scene.add(xLabel);
 scene.add(yLabel);
@@ -605,9 +594,10 @@ function alignDiagonalToZAxis() {
 alignDiagonalToZAxis(); // 执行旋转
 const merkaba2 = createMerkaba2('blue', 'orange');
 cubeGroup.add(merkaba2);
-
+// 发光强度控制（控制中心点光源亮度）
+let currentEmissiveIntensity = 100;
 // 在cubeGroup中心添加点光源，实现整体发光效果
-const groupLight = new THREE.PointLight(0xffffff, 120, 115);
+const groupLight = new THREE.PointLight(0xffffff, currentEmissiveIntensity, 200);
 groupLight.position.set(0, 0, 0);
 cubeGroup.add(groupLight);
 
@@ -621,37 +611,21 @@ const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
 simulationSystem.registerTemplate('upperTetra', merkabaTemplates.upperTetra.geometry, merkabaTemplates.upperTetra.materialConfig);
 simulationSystem.registerTemplate('lowerTetra', merkabaTemplates.lowerTetra.geometry, merkabaTemplates.lowerTetra.materialConfig);
 
-// 发光强度控制
-let currentEmissiveIntensity = 0;
+
 const emissiveSlider = document.getElementById('emissiveIntensity');
 const emissiveValue = document.getElementById('emissiveValue');
 
-// 更新模板的发光强度
+// 更新中心光源强度
 function updateEmissiveIntensity(intensity) {
     currentEmissiveIntensity = intensity;
-    
-    // 更新模板配置
-    const upperTemplate = simulationSystem.templates.get('upperTetra');
-    const lowerTemplate = simulationSystem.templates.get('lowerTetra');
-    
-    if (upperTemplate) {
-        upperTemplate.materialConfig.emissiveIntensity = intensity;
-        upperTemplate.materialConfig.emissive = intensity > 0 ? 0x0000ff : 0x000000; // 蓝色发光
-    }
-    if (lowerTemplate) {
-        lowerTemplate.materialConfig.emissiveIntensity = intensity;
-        lowerTemplate.materialConfig.emissive = intensity > 0 ? 0xff7f00 : 0x000000; // 橙色发光
-    }
+    groupLight.intensity = intensity;
 }
 
 emissiveSlider.addEventListener('input', (e) => {
     const value = parseFloat(e.target.value);
-    emissiveValue.textContent = value.toFixed(2);
+    emissiveValue.textContent = value.toFixed(0);
     updateEmissiveIntensity(value);
 });
-
-// 模拟系统帧计数
-let simulationFrame = 0;
 
 // 存储上一帧的交点位置，用于绘制线段
 let previousIntersections = { upper: new Map(), lower: new Map() };
@@ -878,7 +852,8 @@ speedSlider.addEventListener('input', (e) => {
     rotationSpeed = rotationFrequency * Math.PI * 2;
     speedValue.textContent = rotationFrequency.toFixed(2);
     if(paused && rotationFrequency > 0){
-        for(let i = 0; i < rotationFrequency; i++){
+        // 模拟 100个周期
+        for(let i = 0; i < rotationFrequency*100; i++){
             stepSimulate();
         }
     }
@@ -907,8 +882,12 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
             "roteFreq:": roteFreq,
             "roteSpeed:": roteSpeed,
         });
-        for(let i = 0; i < rotationFrequency; i++){
+        for(let i = 0; i < rotationFrequency*1000; i++){
             stepSimulate();
+            // dont simulate here when main simulation is running
+            if(!paused){
+                break;
+            }
         }
     }
 });
@@ -974,23 +953,18 @@ function stepSimulate() {
     upperTetra.updateMatrixWorld(true);
     lowerTetra.updateMatrixWorld(true);
 
-    // 模拟帧计数
-    simulationFrame++;
-        // 生成线条轨迹
+    // 生成当前帧的影像（从模板创建，统一透明度策略）
+    // 生成线条轨迹
     const upperWorldMatrix = new THREE.Matrix4().copy(upperTetra.matrixWorld);
     const lowerWorldMatrix = new THREE.Matrix4().copy(lowerTetra.matrixWorld);
-
     generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, simulationSystem.lifetime);
     generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, simulationSystem.lifetime);
-
-    // 生成快照（从模板创建，统一透明度策略）
     simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, simulationSystem.lifetime);
-    // 残影系统更新
     simulationSystem.simulationUpdateAnim();
+    simulationSystem.frames++;
 }
-
 // 启动高速模拟定时器
-const simulationTimer = setInterval(()=>paused? null : stepSimulate(), 0);
+var simulationTimer = setInterval(()=>paused?null:stepSimulate(), 0);
 
 // 渲染循环 - 只负责渲染，与模拟分离
 function animate() {
