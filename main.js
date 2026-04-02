@@ -16,7 +16,7 @@ class SimulationSystem {
         this.ghosts = [];
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
-        this.frame = 0; // 模拟帧计数
+        this.frames = 0; // 模拟帧计数
         this.templates = new Map(); // 模板存储：key -> { geometry, materialConfig }
     }
 
@@ -75,7 +75,7 @@ class SimulationSystem {
             maxOpacity: adjustedOpacity,
             lifetime: lifetime,
             maxLifetime: lifetime,
-            bornFrame: this.frame
+            bornFrame: this.frames
         });
     }
 
@@ -116,7 +116,7 @@ class SimulationSystem {
             maxOpacity: adjustedOpacity,
             lifetime: lifetime,
             maxLifetime: lifetime,
-            bornFrame: this.frame
+            bornFrame: this.frames
         });
     }
 
@@ -138,12 +138,12 @@ class SimulationSystem {
 
     // 推进模拟一步
     stepSimulation() {
-        this.frame++;
+        this.frames++;
 
         // 更新所有影子的透明度衰减
         for (let i = this.ghosts.length - 1; i >= 0; i--) {
             const ghostData = this.ghosts[i];
-            const age = this.frame - ghostData.bornFrame;
+            const age = this.frames - ghostData.bornFrame;
             const lifeRatio = 1 - (age / ghostData.maxLifetime);
 
             if (lifeRatio <= 0 || age >= ghostData.maxLifetime) {
@@ -152,7 +152,16 @@ class SimulationSystem {
                 ghostData.object.material.dispose();
                 this.ghosts.splice(i, 1);
             } else {
-                ghostData.object.material.opacity = lifeRatio * ghostData.maxOpacity;
+                const newOpacity = lifeRatio * ghostData.maxOpacity;
+                // 透明度为0时也删除
+                if (newOpacity <= 0.001) {
+                    this.ghostGroup.remove(ghostData.object);
+                    ghostData.object.geometry.dispose();
+                    ghostData.object.material.dispose();
+                    this.ghosts.splice(i, 1);
+                } else {
+                    ghostData.object.material.opacity = newOpacity;
+                }
             }
         }
     }
@@ -826,8 +835,8 @@ window.addEventListener('keydown', (e) => {
 
 // ========== 帧率统计 ==========
 // 模拟帧率统计
-let simFrameCount = 0;
-let simLastTime = performance.now();
+let lastRenderTime = performance.now();
+let lastSampleOfSimFrame = 0;
 let simFPS = 0;
 let simFreq = 0;
 const simFPSDisplay = document.getElementById('simFPS');
@@ -835,7 +844,6 @@ const simFreqDisplay = document.getElementById('simFreq');
 
 // 渲染帧率统计
 let renderFrameCount = 0;
-let renderLastTime = performance.now();
 let renderFPS = 0;
 const renderFPSDisplay = document.getElementById('renderFPS');
 
@@ -844,18 +852,6 @@ const fpsUpdateInterval = 500;
 
 // 旋转模拟函数 - 由高速定时器调用（永不停止）
 function simulateFrame() {
-    // 模拟帧率统计
-    simFrameCount++;
-    const now = performance.now();
-    if (now - simLastTime >= fpsUpdateInterval) {
-        simFPS = Math.round(simFrameCount * 1000 / (now - simLastTime));
-        simFPSDisplay.textContent = simFPS;
-        simFrameCount = 0;
-        simFreq = rotationSpeed / (Math.PI * 2);
-        simFreqDisplay.textContent = simFreq.toFixed(2);
-        simLastTime = now;
-    }
-
     const upperTetra = merkaba2.children[0];
     const lowerTetra = merkaba2.children[1];
 
@@ -903,16 +899,24 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    // 渲染帧率统计
-    renderFrameCount++;
+    // 模拟系统具有更快的帧率，
+    // 渲染系统只是渲染时对其采样
     const now = performance.now();
-    if (now - renderLastTime >= fpsUpdateInterval) {
-        renderFPS = Math.round(renderFrameCount * 1000 / (now - renderLastTime));
+    renderFrameCount++;
+    if (now - lastRenderTime >= fpsUpdateInterval) {
+        simFPS = Math.round( (simulationSystem.frames - lastSampleOfSimFrame) * 1000 / (now - lastRenderTime));
+        simFPSDisplay.textContent = simFPS;
+        simFreq = rotationSpeed / (Math.PI * 2);
+        simFreqDisplay.textContent = simFreq.toFixed(2);
+
+
+        renderFPS = Math.round(renderFrameCount * 1000 / (now - lastRenderTime));
         renderFPSDisplay.textContent = renderFPS;
         renderFrameCount = 0;
-        renderLastTime = now;
-    }
 
+        lastSampleOfSimFrame = simulationSystem.frames;
+        lastRenderTime = now;
+    }
     // 渲染场景
     renderer.render(scene, camera);
 }
