@@ -233,7 +233,6 @@ button:active {
     font-size: 11px;
     color: #888;
 }
-
 /* Paused 提示样式 */
 .paused-indicator {
     position: fixed;
