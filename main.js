@@ -1074,9 +1074,9 @@ outlineEffect.enabled = true; // 启用轮廓效果
 outlineEffect.autoClear = false; // 设置是否自动清除之前的渲染结果，通常设置为false以保持之前的渲染结果不变。
 
 // 旋转速度控制
-let rotationFrequency = 0.1; // 频率（Hz）
+let rotationFrequency = 0.1; // 圈数/帧（每模拟帧旋转的圈数）
 let pendingTempFrames = 0;
-let rotationSpeed = rotationFrequency * Math.PI * 2; // 弧度/秒（每秒旋转的弧度数）
+let rotationSpeed = rotationFrequency * Math.PI * 2; // 弧度/帧（每模拟帧旋转的弧度数）
 let paused = false;
 
 const speedSlider = document.getElementById('rotationSpeed');
@@ -1086,7 +1086,7 @@ speedSlider.addEventListener('input', (e) => {
     e.preventDefault();
     rotationFrequency = parseFloat(e.target.value);
     rotationSpeed = rotationFrequency * Math.PI * 2;
-    speedValue.textContent = rotationFrequency.toFixed(2);
+    speedValue.textContent = rotationFrequency.toFixed(3);
     if(paused)
         pendingTempFrames = parseInt(rotationFrequency*tempCycle);
     saveParamsToURL();
@@ -1095,7 +1095,7 @@ speedSlider.addEventListener('input', (e) => {
 // 鼠标悬停在controls区域时，支持滚轮调整频率
 document.getElementById('controls').addEventListener('wheel', (e) => {
     e.preventDefault();
-    const step = e.altKey ? 0.01 : 0.1;
+    const step = e.altKey ? 0.001 : 0.01;
     const delta = e.deltaY > 0 ? -step : step;
     const minFreq = parseFloat(speedSlider.getAttribute('min'));
     const maxFreq = parseFloat(speedSlider.getAttribute('max'));
@@ -1110,7 +1110,7 @@ document.getElementById('controls').addEventListener('wheel', (e) => {
     rotationFrequency = roteFreq;
     rotationSpeed = roteFreq * Math.PI * 2;
     speedSlider.value = roteFreq;
-    speedValue.textContent = roteFreq.toFixed(2);
+    speedValue.textContent = roteFreq.toFixed(3);
     if(paused)
         pendingTempFrames = parseInt(rotationFrequency*tempCycle);
     saveParamsToURL();
@@ -1215,7 +1215,7 @@ function animate() {
         simFPS = Math.round( (simulationSystem.frames - lastSampleOfSimFrame) * 1000 / (now - lastRenderTime));
         simFPSDisplay.textContent = simFPS;
         simFreq = rotationSpeed / (Math.PI * 2);
-        simFreqDisplay.textContent = simFreq.toFixed(2);
+        simFreqDisplay.textContent = simFreq.toFixed(3);
 
         renderFPS = Math.round(renderFrameCount * 1000 / (now - lastRenderTime));
         renderFPSDisplay.textContent = renderFPS;
