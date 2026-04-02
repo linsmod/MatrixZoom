@@ -11,7 +11,7 @@
     <div id="controls">
         <div class="control-group">
             <label for="rotationSpeed">旋转速度(弧度/秒): <span id="speedValue">0.60</span></label>
-            <input type="range" id="rotationSpeed" min="0" max="6.28" step="0.01" value="0.6">
+            <input type="range" id="rotationSpeed" min="0" max="6280" step="0.1" value="0.6">
         </div>
     </div>
     <div id="sidebar">
@@ -37,6 +37,11 @@
                 <span class="fps-label">渲染:</span>
                 <span id="renderFPS" class="fps-value">0</span>
                 <span class="fps-unit">FPS</span>
+            </div>
+            <div class="fps-row">
+                <span class="fps-label">频率:</span>
+                <span id="simFreq" class="fps-value">0.00</span>
+                <span class="fps-unit">Hz</span>
             </div>
         </div>
         <div class="sidebar-group tips">

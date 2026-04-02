@@ -769,6 +769,17 @@ speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = rotationSpeed.toFixed(2);
 });
 
+// 鼠标悬停在滑块上时，支持滚轮调整
+speedSlider.parentElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const step = e.altKey ? 0.01 : 0.1;
+    const delta = e.deltaY > 0 ? -step : step;
+    let newValue = rotationSpeed + delta;
+    rotationSpeed = newValue;
+    speedSlider.value = newValue;
+    speedValue.textContent = newValue.toFixed(2);
+});
+
 // 空格键控制旋转暂停/继续
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
@@ -784,7 +795,9 @@ window.addEventListener('keydown', (e) => {
 let simFrameCount = 0;
 let simLastTime = performance.now();
 let simFPS = 0;
+let simFreq = 0;
 const simFPSDisplay = document.getElementById('simFPS');
+const simFreqDisplay = document.getElementById('simFreq');
 
 // 渲染帧率统计
 let renderFrameCount = 0;
@@ -804,7 +817,8 @@ function simulateFrame() {
         simFPS = Math.round(simFrameCount * 1000 / (now - simLastTime));
         simFPSDisplay.textContent = simFPS;
         simFrameCount = 0;
-        simFreq = rotationSpeed/Math.PI*2;
+        simFreq = rotationSpeed / (Math.PI * 2);
+        simFreqDisplay.textContent = simFreq.toFixed(2);
         simLastTime = now;
     }
 
