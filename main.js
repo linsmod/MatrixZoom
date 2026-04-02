@@ -650,63 +650,80 @@ emissiveSliderValueElem.addEventListener('input', (e) => {
 let previousIntersections = { upper: new Map(), lower: new Map() };
 
 // ========== 倾斜角控制 ==========
-const tiltAngleSlider = document.getElementById('tiltAngle');
-const tiltAngleValueLabel = document.getElementById('tiltAngleValue');
+const tiltAngleZSlider = document.getElementById('tiltAngleZ');
+const tiltAngleZValueLabel = document.getElementById('tiltAngleZValue');
+const tiltAngleXSlider = document.getElementById('tiltAngleX');
+const tiltAngleXValueLabel = document.getElementById('tiltAngleXValue');
 
-// 计算cubeGroup相对于初始位置的倾斜角（度数）
-function calculateTiltAngle() {
-    // 计算当前四元数与初始四元数的差异
-    const relativeQuaternion = cubeGroup.quaternion.clone().multiply(initialQuaternion.clone().invert());
-    
-    // 从四元数提取旋转角度
-    const angle = 2 * Math.acos(Math.abs(relativeQuaternion.w));
-    
-    // 转换为度数
-    return THREE.MathUtils.radToDeg(angle);
-}
+// 当前倾斜角状态
+let currentTiltAngleZ = 0;
+let currentTiltAngleX = 0;
 
-// 更新倾斜角显示
-function updateTiltAngleDisplay() {
-    const angle = calculateTiltAngle();
-    tiltAngleSlider.value = angle.toFixed(1);
-    tiltAngleValueLabel.textContent = angle.toFixed(1);
-}
-
-// 通过slider设置倾斜角
-function setTiltAngle(angleDegrees) {
-    // 将角度转换为弧度
-    const angleRadians = THREE.MathUtils.degToRad(angleDegrees);
-    
+// 通过slider设置倾斜角（同时应用Z轴和X轴倾斜）
+function setTiltAngles(angleZDegrees, angleXDegrees) {
     // 重置cubeGroup的四元数为初始状态
     cubeGroup.quaternion.copy(initialQuaternion);
     
-    // 获取相机的右向量作为旋转轴（用于倾斜）
-    const cameraRight = new THREE.Vector3();
-    camera.matrix.extractBasis(cameraRight, new THREE.Vector3(), new THREE.Vector3());
+    // 先绕世界Z轴旋转（向右侧X轴正方向倾斜）
+    const worldForward = new THREE.Vector3(0, 0, 1);
+    cubeGroup.rotateOnWorldAxis(worldForward, THREE.MathUtils.degToRad(angleZDegrees));
     
-    // 绕相机右轴旋转
-    cubeGroup.rotateOnWorldAxis(cameraRight, angleRadians);
+    // 再绕世界X轴旋转（向前/后倾斜）
+    const worldRight = new THREE.Vector3(1, 0, 0);
+    cubeGroup.rotateOnWorldAxis(worldRight, THREE.MathUtils.degToRad(angleXDegrees));
 }
 
-// 监听slider变化
-tiltAngleSlider.addEventListener('input', (e) => {
-    const angle = parseFloat(e.target.value);
-    tiltAngleValueLabel.textContent = angle.toFixed(1);
-    setTiltAngle(angle);
+// 更新倾斜角显示（从物体当前姿态反推倾斜角）
+function updateTiltAngleDisplay() {
+    // 由于倾斜角是相对于初始状态的，我们直接显示当前保存的值
+    // 这个函数在鼠标拖动时调用，需要从四元数反推
+    // 简化处理：直接显示当前保存的值
+    tiltAngleZSlider.value = currentTiltAngleZ.toFixed(1);
+    tiltAngleZValueLabel.textContent = currentTiltAngleZ.toFixed(1);
+    tiltAngleXSlider.value = currentTiltAngleX.toFixed(1);
+    tiltAngleXValueLabel.textContent = currentTiltAngleX.toFixed(1);
+}
+
+// 监听Z轴slider变化
+tiltAngleZSlider.addEventListener('input', (e) => {
+    currentTiltAngleZ = parseFloat(e.target.value);
+    tiltAngleZValueLabel.textContent = currentTiltAngleZ.toFixed(1);
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
 });
 
-// 滚轮调整倾斜角
-tiltAngleSlider.parentElement.addEventListener('wheel', (e) => {
+// 监听X轴slider变化
+tiltAngleXSlider.addEventListener('input', (e) => {
+    currentTiltAngleX = parseFloat(e.target.value);
+    tiltAngleXValueLabel.textContent = currentTiltAngleX.toFixed(1);
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+});
+
+// 滚轮调整Z轴倾斜角
+tiltAngleZSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.1 : 1;
     const delta = e.deltaY > 0 ? step : -step;
-    const currentValue = parseFloat(tiltAngleSlider.value);
-    const min = parseFloat(tiltAngleSlider.getAttribute('min'));
-    const max = parseFloat(tiltAngleSlider.getAttribute('max'));
-    const newValue = Math.max(min, Math.min(max, currentValue + delta));
-    tiltAngleSlider.value = newValue.toFixed(1);
-    tiltAngleValueLabel.textContent = newValue.toFixed(1);
-    setTiltAngle(newValue);
+    const min = parseFloat(tiltAngleZSlider.getAttribute('min'));
+    const max = parseFloat(tiltAngleZSlider.getAttribute('max'));
+    const newValue = Math.max(min, Math.min(max, currentTiltAngleZ + delta));
+    currentTiltAngleZ = newValue;
+    tiltAngleZSlider.value = newValue.toFixed(1);
+    tiltAngleZValueLabel.textContent = newValue.toFixed(1);
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+});
+
+// 滚轮调整X轴倾斜角
+tiltAngleXSlider.parentElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const step = e.altKey ? 0.1 : 1;
+    const delta = e.deltaY > 0 ? step : -step;
+    const min = parseFloat(tiltAngleXSlider.getAttribute('min'));
+    const max = parseFloat(tiltAngleXSlider.getAttribute('max'));
+    const newValue = Math.max(min, Math.min(max, currentTiltAngleX + delta));
+    currentTiltAngleX = newValue;
+    tiltAngleXSlider.value = newValue.toFixed(1);
+    tiltAngleXValueLabel.textContent = newValue.toFixed(1);
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
 });
 
 // 根据夹角计算粒子颜色（夹角越大颜色越亮）
