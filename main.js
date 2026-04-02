@@ -8,9 +8,10 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 
 // 统一的影子系统 - 所有对象都从模板生成，不再区分本体和影子
 class SimulationSystem {
-    constructor(scene, maxGhosts = 50) {
+    constructor(scene, maxMeshes = 200, maxLines = 200) {
         this.scene = scene;
-        this.maxGhosts = maxGhosts;
+        this.maxMeshes = maxMeshes; // mesh最大数量
+        this.maxLines = maxLines;   // line最大数量
         this.ghosts = [];
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
@@ -54,7 +55,7 @@ class SimulationSystem {
 
     // 获取当前填充率（0-1）
     getFilling() {
-        return this.ghosts.length / this.maxGhosts;
+        return this.ghosts.length / (this.maxMeshes + this.maxLines);
     }
 
     // 计算调整后的透明度（基于填充率）
@@ -65,8 +66,10 @@ class SimulationSystem {
 
     // 添加网格快照（从模板生成）
     addMeshSnapshot(templateKey, matrixWorld, baseOpacity = 0.3, lifetime = 30) {
-        if (this.ghosts.length >= this.maxGhosts) {
-            this._removeOldest();
+        // 只计算mesh数量
+        const meshCount = this.ghosts.filter(g => g.type === 'mesh').length;
+        if (meshCount >= this.maxMeshes) {
+            this._removeOldestMesh();
         }
 
         const adjustedOpacity = this.calculateAdjustedOpacity(baseOpacity);
@@ -91,8 +94,10 @@ class SimulationSystem {
 
     // 添加线段残影（拖尾轨迹）- 使用Line2实现粗线条
     addLineGhost(start, end, color, opacity = 0.5, lifetime = 6000) {
-        if (this.ghosts.length >= this.maxGhosts) {
-            this._removeOldest();
+        // 只计算line数量
+        const lineCount = this.ghosts.filter(g => g.type === 'line').length;
+        if (lineCount >= this.maxLines) {
+            this._removeOldestLine();
         }
 
         // 使用 LineGeometry 和 LineMaterial 实现粗线条
@@ -140,6 +145,28 @@ class SimulationSystem {
     _removeOldest() {
         const oldest = this.ghosts.shift();
         if (oldest) {
+            this.ghostGroup.remove(oldest.object);
+            oldest.object.geometry.dispose();
+            oldest.object.material.dispose();
+        }
+    }
+
+    // 移除最老的mesh影子
+    _removeOldestMesh() {
+        const meshIndex = this.ghosts.findIndex(g => g.type === 'mesh');
+        if (meshIndex !== -1) {
+            const oldest = this.ghosts.splice(meshIndex, 1)[0];
+            this.ghostGroup.remove(oldest.object);
+            oldest.object.geometry.dispose();
+            oldest.object.material.dispose();
+        }
+    }
+
+    // 移除最老的line影子
+    _removeOldestLine() {
+        const lineIndex = this.ghosts.findIndex(g => g.type === 'line');
+        if (lineIndex !== -1) {
+            const oldest = this.ghosts.splice(lineIndex, 1)[0];
             this.ghostGroup.remove(oldest.object);
             oldest.object.geometry.dispose();
             oldest.object.material.dispose();
@@ -583,7 +610,7 @@ cubeGroup.add(merkaba2);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const simulationSystem = new SimulationSystem(scene, 400); // 最大残影数（增加以支持更密集拖影）
+const simulationSystem = new SimulationSystem(scene, 200, 200); // mesh最大200个，line最大200个
 
 // 注册梅尔卡巴模板
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
