@@ -758,15 +758,17 @@ outlineEffect.enabled = true; // 启用轮廓效果
 outlineEffect.autoClear = false; // 设置是否自动清除之前的渲染结果，通常设置为false以保持之前的渲染结果不变。
 
 // 旋转速度控制
-let rotationSpeed = 0.6; // 弧度/秒（每秒旋转的弧度数）
-let paused = false; 
+let rotationFrequency = 0.1; // 频率（Hz）
+let rotationSpeed = rotationFrequency * Math.PI * 2; // 弧度/秒（每秒旋转的弧度数）
+let paused = false;
 
 const speedSlider = document.getElementById('rotationSpeed');
 const speedValue = document.getElementById('speedValue');
 
 speedSlider.addEventListener('input', (e) => {
-    rotationSpeed = parseFloat(e.target.value);
-    speedValue.textContent = rotationSpeed.toFixed(2);
+    rotationFrequency = parseFloat(e.target.value);
+    rotationSpeed = rotationFrequency * Math.PI * 2;
+    speedValue.textContent = rotationFrequency.toFixed(2);
 });
 
 // 鼠标悬停在滑块上时，支持滚轮调整
@@ -774,8 +776,15 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.01 : 0.1;
     const delta = e.deltaY > 0 ? -step : step;
-    let newValue = rotationSpeed + delta;
-    rotationSpeed = newValue;
+    let newValue =rotationFrequency + delta;
+    rotationFrequency = newValue;
+    rotationSpeed = rotationFrequency * Math.PI * 2;
+    if(rotationSpeed<0){
+        rotationSpeed = 0;
+    }
+    else if(rotationSpeed>1000){
+        rotationSpeed = 1000;
+    }
     speedSlider.value = newValue;
     speedValue.textContent = newValue.toFixed(2);
 });
