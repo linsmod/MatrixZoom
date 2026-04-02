@@ -4,6 +4,9 @@ import { createMerkaba } from './mkb';
 import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
 import { createMerkaba2, getMerkabaTemplates } from './mkb2';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 
 // 统一的影子系统 - 所有对象都从模板生成，不再区分本体和影子
 class SimulationSystem {
@@ -35,6 +38,7 @@ class SimulationSystem {
             transparent: true,
             opacity: opacity,
             blending: THREE.AdditiveBlending,
+            depthWrite: false, // 禁用深度写入，让线段能透过显示
         });
 
         const mesh = new THREE.Mesh(template.geometry.clone(), material);
@@ -75,39 +79,45 @@ class SimulationSystem {
         });
     }
 
-    // 添加线段残影（拖尾轨迹）
-    addLineGhost(start, end, color, opacity = 0.5, lifetime = 6000, trailCount = 5) {
-        for (let i = 0; i < trailCount; i++) {
-            if (this.ghosts.length >= this.maxGhosts) {
-                this._removeOldest();
-            }
-
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array([
-                start.x, 0.02, start.z,
-                end.x, 0.02, end.z
-            ]);
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const adjustedOpacity = this.calculateAdjustedOpacity(opacity);
-            const material = new THREE.LineBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: adjustedOpacity,
-                blending: THREE.AdditiveBlending
-            });
-
-            const line = new THREE.Line(geometry, material);
-            this.ghostGroup.add(line);
-
-            this.ghosts.push({
-                object: line,
-                type: 'line',
-                maxOpacity: adjustedOpacity,
-                lifetime: lifetime,
-                maxLifetime: lifetime,
-                bornFrame: this.frame
-            });
+    // 添加线段残影（拖尾轨迹）- 使用Line2实现粗线条
+    addLineGhost(start, end, color, opacity = 0.5, lifetime = 6000) {
+        if (this.ghosts.length >= this.maxGhosts) {
+            this._removeOldest();
         }
+
+        // 使用 LineGeometry 和 LineMaterial 实现粗线条
+        const lineGeometry = new LineGeometry();
+        const positions = new Float32Array([
+            start.x, 0.02, start.z,
+            end.x, 0.02, end.z
+        ]);
+        lineGeometry.setPositions(positions);
+        
+        const adjustedOpacity = this.calculateAdjustedOpacity(opacity);
+        const lineMaterial = new LineMaterial({
+            color: color,
+            linewidth: 3, // 线宽（像素）
+            transparent: true,
+            opacity: adjustedOpacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false, // 禁用深度写入
+            depthTest: false, // 禁用深度测试，线段始终显示在最前面
+            resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
+        });
+
+        const line = new Line2(lineGeometry, lineMaterial);
+        line.computeLineDistances();
+        line.renderOrder = 1; // 确保线段在网格之后渲染
+        this.ghostGroup.add(line);
+
+        this.ghosts.push({
+            object: line,
+            type: 'line',
+            maxOpacity: adjustedOpacity,
+            lifetime: lifetime,
+            maxLifetime: lifetime,
+            bornFrame: this.frame
+        });
     }
 
     // 添加梅尔卡巴快照（两个四面体）
@@ -596,8 +606,11 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
     // 当前帧的交点
     const currentIntersections = new Map();
     
-    // 使用固定线段长度，不随速度变化
-    const lineLength = 0.1; // 固定长度
+    // 增加线段长度以获得更明显的轨迹
+    const lineLength = 0.3; // 增加长度
+    
+    // 每帧生成的线段数量（密度）
+    const linesPerEdge = 3; // 每条边生成3条线段
     
     for (const edge of edges) {
         // 将局部坐标转换为世界坐标
@@ -628,9 +641,14 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             tangent.y = 0;
             tangent.normalize();
             
-            // 沿切线方向绘制固定长度的线段（使用统一残影系统）
-            const lineEnd = intersection.clone().add(tangent.multiplyScalar(lineLength));
-            simulationSystem.addLineGhost(intersection, lineEnd, color, 0.5, lifetime);
+            // 生成多条线段以增加密度
+            for (let i = 0; i < linesPerEdge; i++) {
+                // 添加微小的随机偏移，使线段不完全重叠
+                const offset = (i / linesPerEdge) * lineLength * 0.3;
+                const lineStart = intersection.clone().add(tangent.clone().multiplyScalar(offset));
+                const lineEnd = lineStart.clone().add(tangent.clone().multiplyScalar(lineLength));
+                simulationSystem.addLineGhost(lineStart, lineEnd, color, 0.4, lifetime);
+            }
         }
     }
     
@@ -917,6 +935,13 @@ window.addEventListener('resize', () => {
     orthographicCamera.updateProjectionMatrix();
     
     renderer.setSize(width, height);
+    
+    // 更新所有LineMaterial的resolution
+    for (const ghostData of simulationSystem.ghosts) {
+        if (ghostData.type === 'line' && ghostData.object.material) {
+            ghostData.object.material.resolution.set(width, height);
+        }
+    }
 });
 
 animate();
