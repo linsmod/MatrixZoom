@@ -760,9 +760,21 @@ function setTiltAngles(angleZDegrees, angleXDegrees) {
 
 // 更新倾斜角显示（从物体当前姿态反推倾斜角）
 function updateTiltAngleDisplay() {
-    // 由于倾斜角是相对于初始状态的，我们直接显示当前保存的值
-    // 这个函数在鼠标拖动时调用，需要从四元数反推
-    // 简化处理：直接显示当前保存的值
+    // 计算当前四元数相对于初始四元数的差异
+    const diffQuaternion = cubeGroup.quaternion.clone().multiply(initialQuaternion.clone().invert());
+    
+    // 从四元数提取欧拉角
+    const euler = new THREE.Euler().setFromQuaternion(diffQuaternion, 'ZXY');
+    
+    // 提取Z轴和X轴的旋转角度（转换为度数，并反转Z轴方向以匹配控制逻辑）
+    currentTiltAngleZ = -THREE.MathUtils.radToDeg(euler.z);
+    currentTiltAngleX = THREE.MathUtils.radToDeg(euler.x);
+    
+    // 限制角度范围
+    currentTiltAngleZ = Math.max(-90, Math.min(90, currentTiltAngleZ));
+    currentTiltAngleX = Math.max(-90, Math.min(90, currentTiltAngleX));
+    
+    // 更新显示
     tiltAngleZSlider.value = currentTiltAngleZ.toFixed(1);
     tiltAngleZValueLabel.textContent = currentTiltAngleZ.toFixed(1);
     tiltAngleXSlider.value = currentTiltAngleX.toFixed(1);
