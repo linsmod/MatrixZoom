@@ -1,5 +1,46 @@
 import * as THREE from 'three';
+/**
+ * 将 Web 颜色名称转换为 RGB 对象或十六进制数字
+ * 仅支持标准 Web/CSS 颜色名称（16种基础色）
+ * @param {string} colorName - Web 颜色名称，如 'red', 'blue', 'gray', 'orange' 等
+ * @param {string} format - 返回格式：'hex' | 'rgb' | 'object'，默认 'object'
+ * @returns {number|Object|null} - 返回对应格式的颜色值，无效时返回 null
+ */
+function webColorToColor(colorName) {
+    if (!colorName || typeof colorName !== 'string') {
+        return null;
+    }
+    if(colorName.startsWith("#")){
+        return parseInt(colorName, 16);
+    }
 
+    const name = colorName.trim().toLowerCase();
+
+    // 标准 Web/CSS 颜色名称（16种）
+    const webColors = {
+        'black':   0x000000 ,
+        'white':   0xffffff ,
+        'red':     0xff0000 ,
+        'green':   0x00ff00 ,
+        'blue':    0x0000ff ,
+        'yellow':  0xffff00 ,
+        'cyan':    0x00ffff ,
+        'magenta': 0xff00ff ,
+        'gray':    0x808080 ,
+        'grey':    0x808080 ,
+        'maroon':  0x800000 ,
+        'olive':   0x808000 ,
+        'purple':  0x800080 ,
+        'teal':    0x008080 ,
+        'navy':    0x000080 ,
+        'silver':  0xc0c0c0
+    };
+
+    const color = webColors[name];
+    if (!color) return null;
+
+    return color;
+}
 // 创建四面体几何体（上四面体）
 function createUpperTetraGeometry() {
   const upperVertices = new Float32Array([
@@ -58,8 +99,8 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
       materialConfig: {
         color: 0xFF6B6B, // 珊瑚红
         side: THREE.DoubleSide,
-        emissive: color1,
-        emissiveIntensity: 0.5, // 降低发光强度
+        emissive: webColorToColor(color1),
+        emissiveIntensity: 0, // 降低发光强度
         polygonOffset: true,
         polygonOffsetFactor: 1,
         polygonOffsetUnits: 1,
@@ -70,8 +111,8 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
       materialConfig: {
         color: 0x4ECDC4, // 蒂芙尼蓝
         side: THREE.DoubleSide,
-        emissive: color2,
-        emissiveIntensity: 0.8, // 降低发光强度
+        emissive: webColorToColor(color2),
+        emissiveIntensity: 0, // 降低发光强度
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: 1,

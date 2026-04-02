@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { createMerkaba } from './mkb';
 import { OutlineEffect } from 'three/examples/jsm/Addons.js';
-import { createBackground } from './bg';
 import { createMerkaba2, getMerkabaTemplates } from './mkb2';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
@@ -17,6 +15,7 @@ class SimulationSystem {
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
         this.frames = 0; // 模拟帧计数
+        this.lifetime = 1500;
         this.templates = new Map(); // 模板存储：key -> { geometry, materialConfig }
     }
 
@@ -34,8 +33,8 @@ class SimulationSystem {
         if (!template) return null;
 
         // 根据透明度衰减发光强度
-        const baseEmissiveIntensity = template.materialConfig.emissiveIntensity || 1;
-        const adjustedEmissiveIntensity = baseEmissiveIntensity * opacity;
+        const baseEmissiveIntensity = template.materialConfig.emissiveIntensity || 0;
+        const adjustedEmissiveIntensity = baseEmissiveIntensity * opacity * 0.6;
 
         const material = new THREE.MeshPhongMaterial({
             ...template.materialConfig,
@@ -76,8 +75,10 @@ class SimulationSystem {
 
         // 获取模板的基础发光强度用于后续衰减
         const template = this.templates.get(templateKey);
-        const baseEmissiveIntensity = template ? (template.materialConfig.emissiveIntensity || 1) : 1;
-
+        const baseEmissiveIntensity = template ? (template.materialConfig.emissiveIntensity || 0) : 0;
+        if(baseEmissiveIntensity>0){
+            debugger;
+        }
         this.ghostGroup.add(mesh);
         this.ghosts.push({
             object: mesh,
@@ -175,8 +176,8 @@ class SimulationSystem {
                     ghostData.object.material.opacity = newOpacity;
                     // 同步衰减发光强度（仅对网格类型）
                     if (ghostData.type === 'mesh' && ghostData.object.material.emissiveIntensity !== undefined) {
-                        const baseEmissiveIntensity = ghostData.baseEmissiveIntensity || 1;
-                        ghostData.object.material.emissiveIntensity = baseEmissiveIntensity * newOpacity;
+                        const baseEmissiveIntensity = ghostData.baseEmissiveIntensity || 0;
+                        ghostData.object.material.emissiveIntensity = baseEmissiveIntensity * newOpacity * 0.6;
                     }
                 }
             }
@@ -620,7 +621,7 @@ function getParticleColorByAngle(angle, isUpper) {
 }
 
 // 生成四面体边的线条轨迹
-function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previousMap, speed) {
+function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, lifetime) {
     if (!tetraMesh || !tetraMesh.geometry) return;
     
     const positionAttr = tetraMesh.geometry.getAttribute('position');
@@ -656,7 +657,6 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             
             // 计算颜色和生命周期（帧数）
             const color = getParticleColorByAngle(angle, isUpper);
-            const lifetime = 1000; // 1000帧
             
             // 计算切线方向并绘制线段
             // 旋转轴是(1,1,1)方向，在地面上的投影方向
@@ -902,11 +902,11 @@ function simulateFrame() {
     const upperWorldMatrix = new THREE.Matrix4().copy(upperTetra.matrixWorld);
     const lowerWorldMatrix = new THREE.Matrix4().copy(lowerTetra.matrixWorld);
 
-    generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
-    generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
+    generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, simulationSystem.lifetime);
+    generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, simulationSystem.lifetime);
 
     // 生成快照（从模板创建，统一透明度策略）
-    simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, 5000);
+    simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, simulationSystem.lifetime);
     // 残影系统更新
     simulationSystem.stepSimulation();
 }
