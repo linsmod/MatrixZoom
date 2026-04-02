@@ -20,7 +20,7 @@ body {
 
 #controls {
     position: fixed;
-    bottom: 120px;
+    bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -240,7 +240,7 @@ button:active {
 /* Paused 提示样式 */
 .paused-indicator {
     position: fixed;
-    bottom: 50px;
+    bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
     color: #ff9800;

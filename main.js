@@ -16,7 +16,7 @@ class SimulationSystem {
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
         this.frames = 0; // 模拟帧计数
-        this.lifetime = 1500;
+        this.lifetime = 200;
         this.templates = new Map(); // 模板存储：key -> { geometry, materialConfig }
     }
 
@@ -732,19 +732,12 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, lifetime
 // 控制模式：'camera' 相机控制，'object' 物体控制
 // 默认相机控制，按住 Ctrl 切换到物体控制
 let controlMode = 'camera';
-const controlModeDisplay = document.getElementById('controlModeDisplay');
-
-// 更新控制模式显示
-function updateControlModeDisplay() {
-    controlModeDisplay.textContent = controlMode === 'camera' ? '相机控制' : '物体控制';
-}
 
 // Ctrl 键控制模式切换
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Control' && controlMode === 'camera') {
         controlMode = 'object';
         controls.enabled = false;
-        updateControlModeDisplay();
     }
 });
 
@@ -752,7 +745,6 @@ window.addEventListener('keyup', (e) => {
     if (e.key === 'Control' && controlMode === 'object') {
         controlMode = 'camera';
         controls.enabled = true;
-        updateControlModeDisplay();
     }
 });
 
