@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function createMerkaba2(color1,color2) {
+export function createMerkaba2(color1, color2) {
   const group = new THREE.Group();
 
   // 定义两个正四面体的顶点（共8个）
@@ -20,6 +20,7 @@ export function createMerkaba2(color1,color2) {
     0, 3, 1,   // 面2
     1, 2, 3,   // 面3
   ]);
+  
   // 创建上四面体几何体
   const upperGeo = new THREE.BufferGeometry();
   upperGeo.setAttribute('position', new THREE.BufferAttribute(upperVertices, 3));
@@ -32,13 +33,13 @@ export function createMerkaba2(color1,color2) {
   lowerGeo.setIndex(new THREE.BufferAttribute(faces, 1));
   lowerGeo.computeVertexNormals();
 
-  // 创建材质和网格
+  // 创建材质和网格 - 恢复原来的 MeshPhongMaterial
   const upperMaterial = new THREE.MeshPhongMaterial({
     color: 0xFF6B6B, // 珊瑚红
-    side: THREE.DoubleSide, // 可选：双面渲染
+    side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.3,
-    emissive: color1 || 'purple',  // 自发光红色边缘
+    emissive: color1 || 'purple',
     emissiveIntensity: 2,
   });
   const lowerMaterial = new THREE.MeshPhongMaterial({
@@ -46,7 +47,7 @@ export function createMerkaba2(color1,color2) {
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.3,
-    emissive: color2 || 0x4ECDC4,  // 自发光红色边缘
+    emissive: color2 || 0x4ECDC4,
     emissiveIntensity: 5,
   });
 
