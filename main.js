@@ -870,10 +870,18 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
 });
 
 // 空格键控制旋转暂停/继续
+const pausedIndicator = document.getElementById('pausedIndicator');
+
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault();
         paused = !paused;
+        // 切换 Paused 提示的显示
+        if (paused) {
+            pausedIndicator.classList.remove('hidden');
+        } else {
+            pausedIndicator.classList.add('hidden');
+        }
     }
 });
 

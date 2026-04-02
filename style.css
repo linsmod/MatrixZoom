@@ -233,3 +233,34 @@ button:active {
     font-size: 11px;
     color: #888;
 }
+
+/* Paused 提示样式 */
+.paused-indicator {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ff9800;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 8px 16px;
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 6px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.paused-indicator.hidden {
+    display: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
