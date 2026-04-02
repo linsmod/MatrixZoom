@@ -468,6 +468,15 @@ controls.maxDistance = 15;
 controls.maxPolarAngle = Math.PI / 2;
 controls.update();
 
+// 相机视角变化时保存到URL（防抖处理）
+let saveCameraTimeout = null;
+controls.addEventListener('change', () => {
+    if (saveCameraTimeout) clearTimeout(saveCameraTimeout);
+    saveCameraTimeout = setTimeout(() => {
+        saveParamsToURL();
+    }, 300);
+});
+
 // 投影模式切换
 const projectionSelect = document.getElementById('projectionMode');
 
@@ -758,6 +767,16 @@ function saveParamsToURL() {
     params.set('tiltZ', currentTiltAngleZ.toFixed(1));
     params.set('tiltX', currentTiltAngleX.toFixed(1));
     
+    // 保存相机位置
+    params.set('cx', camera.position.x.toFixed(2));
+    params.set('cy', camera.position.y.toFixed(2));
+    params.set('cz', camera.position.z.toFixed(2));
+    
+    // 保存相机目标点
+    params.set('tx', controls.target.x.toFixed(2));
+    params.set('ty', controls.target.y.toFixed(2));
+    params.set('tz', controls.target.z.toFixed(2));
+    
     // 更新URL而不刷新页面
     const newURL = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newURL);
@@ -818,6 +837,27 @@ function loadParamsFromURL() {
     
     // 应用倾斜角
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+    
+    // 解析相机位置
+    if (params.has('cx') && params.has('cy') && params.has('cz')) {
+        const cx = parseFloat(params.get('cx'));
+        const cy = parseFloat(params.get('cy'));
+        const cz = parseFloat(params.get('cz'));
+        if (!isNaN(cx) && !isNaN(cy) && !isNaN(cz)) {
+            camera.position.set(cx, cy, cz);
+        }
+    }
+    
+    // 解析相机目标点
+    if (params.has('tx') && params.has('ty') && params.has('tz')) {
+        const tx = parseFloat(params.get('tx'));
+        const ty = parseFloat(params.get('ty'));
+        const tz = parseFloat(params.get('tz'));
+        if (!isNaN(tx) && !isNaN(ty) && !isNaN(tz)) {
+            controls.target.set(tx, ty, tz);
+            controls.update();
+        }
+    }
 }
 
 // 根据夹角计算粒子颜色（夹角越大颜色越亮）
