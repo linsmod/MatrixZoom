@@ -347,8 +347,8 @@ document.getElementById('sideCamera').appendChild(sideRenderer.domElement);
 
 // 创建侧边固定机位摄像机（斜着俯瞰）
 const sideCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-// 设置斜着俯瞰的位置：右上方，看向原点
-sideCamera.position.set(8, 10, 8);
+// 设置斜着俯瞰的位置：右上方，看向原点（拉近一些）
+sideCamera.position.set(5, 6, 5);
 sideCamera.lookAt(0, 0, 0);
 
 // 侧边摄像机的 OrbitControls
