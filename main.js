@@ -60,15 +60,17 @@ class TrailLineSystem {
             const lineData = this.lines[i];
             const age = (now - lineData.createdAt) / 1000;
             
-            if (age >= lineData.maxLifetime) {
-                // 线条过期，移除
+            // 计算透明度
+            const lifeRatio = 1 - (age / lineData.maxLifetime);
+            
+            // 透明度为0或超过生命周期时移除
+            if (lifeRatio <= 0 || age >= lineData.maxLifetime) {
                 this.trailGroup.remove(lineData.line);
                 lineData.line.geometry.dispose();
                 lineData.line.material.dispose();
                 this.lines.splice(i, 1);
             } else {
                 // 更新透明度
-                const lifeRatio = 1 - (age / lineData.maxLifetime);
                 lineData.line.material.opacity = lifeRatio;
             }
         }
@@ -537,7 +539,7 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             
             // 计算颜色和生命周期
             const color = getParticleColorByAngle(angle, isUpper);
-            const lifetime = 3.0 + (angle / (Math.PI / 2)) * 2.0;
+            const lifetime = 1.0 + (angle / (Math.PI / 2)) * 1.0; // 缩短生命周期
             
             // 如果上一帧有这个边的交点，绘制线段
             if (previousMap.has(key)) {
@@ -734,30 +736,33 @@ function animate() {
     // rotateMkb(merkaba);
     rotateMkb(merkaba2);
     
-    // 更新线条轨迹系统
+    // 更新线条轨迹系统（始终执行，不受暂停影响）
     trailLineSystem.update(0.016);
     
-    // 获取上四面体和下四面体
-    const upperTetra = merkaba2.children[0];
-    const lowerTetra = merkaba2.children[1];
-    
-    // 计算世界变换矩阵
-    upperTetra.updateMatrixWorld(true);
-    lowerTetra.updateMatrixWorld(true);
-    
-    const upperWorldMatrix = new THREE.Matrix4();
-    const lowerWorldMatrix = new THREE.Matrix4();
-    
-    upperWorldMatrix.copy(upperTetra.matrixWorld);
-    lowerWorldMatrix.copy(lowerTetra.matrixWorld);
-    
-    // 生成线条轨迹，传入上一帧的交点位置
-    const newUpperIntersections = generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper);
-    const newLowerIntersections = generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower);
-    
-    // 更新上一帧的交点位置
-    previousIntersections.upper = newUpperIntersections || new Map();
-    previousIntersections.lower = newLowerIntersections || new Map();
+    // 只有在旋转时才生成新的线条轨迹
+    if (isRotating) {
+        // 获取上四面体和下四面体
+        const upperTetra = merkaba2.children[0];
+        const lowerTetra = merkaba2.children[1];
+        
+        // 计算世界变换矩阵
+        upperTetra.updateMatrixWorld(true);
+        lowerTetra.updateMatrixWorld(true);
+        
+        const upperWorldMatrix = new THREE.Matrix4();
+        const lowerWorldMatrix = new THREE.Matrix4();
+        
+        upperWorldMatrix.copy(upperTetra.matrixWorld);
+        lowerWorldMatrix.copy(lowerTetra.matrixWorld);
+        
+        // 生成线条轨迹，传入上一帧的交点位置
+        const newUpperIntersections = generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper);
+        const newLowerIntersections = generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower);
+        
+        // 更新上一帧的交点位置
+        previousIntersections.upper = newUpperIntersections || new Map();
+        previousIntersections.lower = newLowerIntersections || new Map();
+    }
     
     renderer.render(scene, camera);
 }
