@@ -475,7 +475,7 @@ cubeGroup.add(merkaba2);
 scene.add(cubeGroup);
 
 // 创建粒子轨迹系统
-const particleTrailSystem = new ParticleTrailSystem(scene);
+const particleTrailSystem = new ParticleTrailSystem(scene, 3000); // 最大粒子数
 
 // 粒子生成控制变量
 let particleSpawnTimer = 0;
@@ -503,7 +503,7 @@ function getParticleColorByAngle(angle, isUpper) {
 }
 
 // 生成四面体边的粒子轨迹
-function generateTetrahedronParticleTrails(tetraMesh, isUpper, worldMatrix) {
+function generateTetrahedronParticleTrails(tetraMesh, isUpper, worldMatrix, speed) {
     if (!tetraMesh || !tetraMesh.geometry) return;
     
     const positionAttr = tetraMesh.geometry.getAttribute('position');
@@ -511,6 +511,12 @@ function generateTetrahedronParticleTrails(tetraMesh, isUpper, worldMatrix) {
     
     // 获取四面体的边
     const edges = getTetrahedronEdges(localPositions);
+    
+    // 根据旋转速度计算粒子密度
+    // 速度越快，每个交点生成的粒子越多
+    const baseParticles = 1;
+    const speedFactor = speed / 0.01; // 以0.01为基准速度
+    const particlesPerIntersection = Math.ceil(baseParticles * Math.max(1, speedFactor));
     
     for (const edge of edges) {
         // 将局部坐标转换为世界坐标
@@ -529,13 +535,15 @@ function generateTetrahedronParticleTrails(tetraMesh, isUpper, worldMatrix) {
             const color = getParticleColorByAngle(angle, isUpper);
             const lifetime = 2.0 + (angle / (Math.PI / 2)) * 3.0; // 夹角越大，粒子存活越久
             
-            // 在交点位置生成粒子
-            // 添加一点随机偏移使轨迹更自然
-            const particlePos = intersection.clone();
-            particlePos.x += (Math.random() - 0.5) * 0.03;
-            particlePos.z += (Math.random() - 0.5) * 0.03;
-            
-            particleTrailSystem.createParticle(particlePos, color, lifetime);
+            // 在交点位置生成多个粒子，数量根据速度调整
+            for (let i = 0; i < particlesPerIntersection; i++) {
+                const particlePos = intersection.clone();
+                // 添加随机偏移使轨迹更密集自然
+                particlePos.x += (Math.random() - 0.5) * 0.08;
+                particlePos.z += (Math.random() - 0.5) * 0.08;
+                
+                particleTrailSystem.createParticle(particlePos, color, lifetime);
+            }
         }
     }
 }
@@ -742,9 +750,9 @@ function animate() {
         upperWorldMatrix.copy(upperTetra.matrixWorld);
         lowerWorldMatrix.copy(lowerTetra.matrixWorld);
         
-        // 生成粒子轨迹
-        generateTetrahedronParticleTrails(upperTetra, true, upperWorldMatrix);
-        generateTetrahedronParticleTrails(lowerTetra, false, lowerWorldMatrix);
+        // 生成粒子轨迹，传入旋转速度
+        generateTetrahedronParticleTrails(upperTetra, true, upperWorldMatrix, rotationSpeed);
+        generateTetrahedronParticleTrails(lowerTetra, false, lowerWorldMatrix, rotationSpeed * 3); // 下四面体转速是3倍
     }
     
     renderer.render(scene, camera);
