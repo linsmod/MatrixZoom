@@ -5,85 +5,138 @@ import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
 import { createMerkaba2 } from './mkb2';
 
-// 线条轨迹系统类 - 用渐变线条代替粒子，大幅提高性能
-class TrailLineSystem {
-    constructor(scene, maxLines = 500) {
+// 统一残影系统类 - 同时处理网格残影和线段拖尾
+class GhostSystem {
+    constructor(scene, maxGhosts = 50) {
         this.scene = scene;
-        this.maxLines = maxLines;
-        this.lines = [];
-        this.trailGroup = new THREE.Group();
-        this.scene.add(this.trailGroup);
+        this.maxGhosts = maxGhosts;
+        this.ghosts = [];
+        this.ghostGroup = new THREE.Group();
+        this.scene.add(this.ghostGroup);
     }
-    
-    // 添加一条轨迹线段
-    addLineSegment(start, end, color, lifetime = 3.0) {
-        if (this.lines.length >= this.maxLines) {
-            // 移除最老的线段
-            const oldest = this.lines.shift();
-            this.trailGroup.remove(oldest.line);
-            oldest.line.geometry.dispose();
-            oldest.line.material.dispose();
+
+    // 克隆网格创建残影
+    cloneMeshAsGhost(mesh, opacity = 0.3) {
+        if (!mesh || !mesh.geometry) return null;
+
+        const geometry = mesh.geometry.clone();
+        const material = new THREE.MeshPhongMaterial({
+            color: mesh.material.color,
+            transparent: true,
+            opacity: opacity,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            emissive: mesh.material.emissive,
+            emissiveIntensity: mesh.material.emissiveIntensity * 0.5,
+        });
+
+        const ghost = new THREE.Mesh(geometry, material);
+        mesh.updateMatrixWorld(true);
+        ghost.applyMatrix4(mesh.matrixWorld);
+
+        return ghost;
+    }
+
+    // 添加网格残影（四面体等）
+    addMeshGhost(mesh, opacity = 0.2, lifetime = 0.3) {
+        if (this.ghosts.length >= this.maxGhosts) {
+            this._removeOldest();
         }
-        
-        // 创建渐变线条
+
+        const ghost = this.cloneMeshAsGhost(mesh, opacity);
+        if (!ghost) return;
+
+        this.ghostGroup.add(ghost);
+        this.ghosts.push({
+            object: ghost,
+            type: 'mesh',
+            maxOpacity: opacity,
+            lifetime: lifetime,
+            maxLifetime: lifetime,
+            createdAt: Date.now()
+        });
+    }
+
+    // 添加线段残影（拖尾轨迹）
+    addLineGhost(start, end, color, opacity = 0.5, lifetime = 1.0) {
+        if (this.ghosts.length >= this.maxGhosts) {
+            this._removeOldest();
+        }
+
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array([
             start.x, 0.02, start.z,
             end.x, 0.02, end.z
         ]);
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        
+
         const material = new THREE.LineBasicMaterial({
             color: color,
             transparent: true,
-            opacity: 1.0,
-            linewidth: 2,
-            blending: THREE.AdditiveBlending  // 颜色叠加混合
+            opacity: opacity,
+            blending: THREE.AdditiveBlending
         });
-        
+
         const line = new THREE.Line(geometry, material);
-        this.trailGroup.add(line);
-        
-        this.lines.push({
-            line: line,
+        this.ghostGroup.add(line);
+
+        this.ghosts.push({
+            object: line,
+            type: 'line',
+            maxOpacity: opacity,
             lifetime: lifetime,
             maxLifetime: lifetime,
             createdAt: Date.now()
         });
     }
-    
-    // 更新所有线条
+
+    // 添加梅尔卡巴的残影快照
+    addMerkabaGhost(merkaba, opacity = 0.2, lifetime = 0.3) {
+        const upperTetra = merkaba.children[0];
+        const lowerTetra = merkaba.children[1];
+        this.addMeshGhost(upperTetra, opacity, lifetime);
+        this.addMeshGhost(lowerTetra, opacity, lifetime);
+    }
+
+    // 移除最老的残影
+    _removeOldest() {
+        const oldest = this.ghosts.shift();
+        if (oldest) {
+            this.ghostGroup.remove(oldest.object);
+            oldest.object.geometry.dispose();
+            oldest.object.material.dispose();
+        }
+    }
+
+    // 更新所有残影（独立渐变动画）
     update(deltaTime) {
         const now = Date.now();
-        
-        for (let i = this.lines.length - 1; i >= 0; i--) {
-            const lineData = this.lines[i];
-            const age = (now - lineData.createdAt) / 1000;
-            
-            // 计算透明度
-            const lifeRatio = 1 - (age / lineData.maxLifetime);
-            
-            // 透明度为0或超过生命周期时移除
-            if (lifeRatio <= 0 || age >= lineData.maxLifetime) {
-                this.trailGroup.remove(lineData.line);
-                lineData.line.geometry.dispose();
-                lineData.line.material.dispose();
-                this.lines.splice(i, 1);
+
+        for (let i = this.ghosts.length - 1; i >= 0; i--) {
+            const ghostData = this.ghosts[i];
+            const age = (now - ghostData.createdAt) / 1000;
+            const lifeRatio = 1 - (age / ghostData.maxLifetime);
+
+            if (lifeRatio <= 0 || age >= ghostData.maxLifetime) {
+                this.ghostGroup.remove(ghostData.object);
+                ghostData.object.geometry.dispose();
+                ghostData.object.material.dispose();
+                this.ghosts.splice(i, 1);
             } else {
-                // 更新透明度
-                lineData.line.material.opacity = lifeRatio;
+                // 独立渐变：每个残影根据自己的生命周期衰减
+                ghostData.object.material.opacity = lifeRatio * ghostData.maxOpacity;
             }
         }
     }
-    
-    // 清除所有线条
+
+    // 清除所有残影
     clear() {
-        for (const lineData of this.lines) {
-            this.trailGroup.remove(lineData.line);
-            lineData.line.geometry.dispose();
-            lineData.line.material.dispose();
+        for (const ghostData of this.ghosts) {
+            this.ghostGroup.remove(ghostData.object);
+            ghostData.object.geometry.dispose();
+            ghostData.object.material.dispose();
         }
-        this.lines = [];
+        this.ghosts = [];
     }
 }
 
@@ -477,8 +530,12 @@ cubeGroup.add(merkaba2);
 
 scene.add(cubeGroup);
 
-// 创建线条轨迹系统
-const trailLineSystem = new TrailLineSystem(scene, 1000); // 最大线条数
+// 创建统一残影系统（同时处理网格残影和线段拖尾）
+const ghostSystem = new GhostSystem(scene, 100); // 最大残影数
+
+// 残影生成控制变量
+let ghostSpawnCounter = 0;
+const ghostSpawnInterval = 4; // 每4次模拟生成一个残影（约60fps时每帧一个）
 
 // 轨迹生成控制变量
 let trailSpawnTimer = 0;
@@ -553,9 +610,9 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             tangent.y = 0;
             tangent.normalize();
             
-            // 沿切线方向绘制固定长度的线段
+            // 沿切线方向绘制固定长度的线段（使用统一残影系统）
             const lineEnd = intersection.clone().add(tangent.multiplyScalar(lineLength));
-            trailLineSystem.addLineSegment(intersection, lineEnd, color, lifetime);
+            ghostSystem.addLineGhost(intersection, lineEnd, color, 0.5, lifetime);
         }
     }
     
@@ -708,68 +765,70 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-function rotateMkb(mkb) {
-    if (!isRotating) return; // 如果暂停旋转，直接返回
+// ========== 高速模拟 + 分离渲染架构 ==========
+// 模拟更新频率（可高于渲染帧率）
+const simulationInterval = 4; // 4ms，约250fps的模拟频率
+let simulationTime = 0;
 
-    const upperTetra = mkb.children[0];
-    const lowerTetra = mkb.children[1];
+// 旋转模拟函数 - 由高速定时器调用
+function simulateRotation() {
+    if (!isRotating) return;
+
+    // 计算每次模拟的时间步长
+    const dt = simulationInterval / 1000; // 转换为秒
+    simulationTime += dt;
+
+    const upperTetra = merkaba2.children[0];
+    const lowerTetra = merkaba2.children[1];
 
     // 使用梅尔卡巴的中轴（对角线）作为旋转轴
     const axis = new THREE.Vector3(1, 1, 1).normalize();
 
+    // 计算每次模拟的旋转角度（基于实际时间）
+    const upperAngle = rotationSpeed * 1 * (simulationInterval / 16.67); // 归一化到60fps
+    const lowerAngle = rotationSpeed * 3 * (simulationInterval / 16.67);
+
     const quaternion = new THREE.Quaternion();
 
     // 上四面体顺时针旋转
-    quaternion.setFromAxisAngle(axis, rotationSpeed * 1);
+    quaternion.setFromAxisAngle(axis, upperAngle);
     upperTetra.quaternion.multiplyQuaternions(quaternion, upperTetra.quaternion);
 
     // 下四面体逆时针旋转
-    quaternion.setFromAxisAngle(axis, -rotationSpeed * 3);
+    quaternion.setFromAxisAngle(axis, -lowerAngle);
     lowerTetra.quaternion.multiplyQuaternions(quaternion, lowerTetra.quaternion);
 
-    // 强制更新边和法线
-    mkb.traverse(child => {
-        if (child.isMesh) {
-            child.geometry.computeVertexNormals(); // 更新法线
-        }
-    });
+    // 强制更新世界矩阵
+    upperTetra.updateMatrixWorld(true);
+    lowerTetra.updateMatrixWorld(true);
+
+    // 生成线条轨迹
+    const upperWorldMatrix = new THREE.Matrix4().copy(upperTetra.matrixWorld);
+    const lowerWorldMatrix = new THREE.Matrix4().copy(lowerTetra.matrixWorld);
+
+    generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
+    generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
+
+    // 生成残影（每隔一定帧数）
+    ghostSpawnCounter++;
+    if (ghostSpawnCounter >= ghostSpawnInterval) {
+        ghostSpawnCounter = 0;
+        ghostSystem.addMerkabaGhost(merkaba2, 0.2, 0.3); // opacity: 0.2, lifetime: 0.3s
+    }
 }
 
+// 启动高速模拟定时器
+const simulationTimer = setInterval(simulateRotation, simulationInterval);
+
+// 渲染循环 - 只负责渲染，与模拟分离
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    // rotateMkb(merkaba);
-    rotateMkb(merkaba2);
-    
-    // 更新线条轨迹系统（始终执行，不受暂停影响）
-    trailLineSystem.update(0.016);
-    
-    // 只有在旋转时才生成新的线条轨迹
-    if (isRotating) {
-        // 获取上四面体和下四面体
-        const upperTetra = merkaba2.children[0];
-        const lowerTetra = merkaba2.children[1];
-        
-        // 计算世界变换矩阵
-        upperTetra.updateMatrixWorld(true);
-        lowerTetra.updateMatrixWorld(true);
-        
-        const upperWorldMatrix = new THREE.Matrix4();
-        const lowerWorldMatrix = new THREE.Matrix4();
-        
-        upperWorldMatrix.copy(upperTetra.matrixWorld);
-        lowerWorldMatrix.copy(lowerTetra.matrixWorld);
-        
-        // 生成线条轨迹，传入旋转速度
-        const newUpperIntersections = generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
-        const newLowerIntersections = generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
-        
-        // 更新上一帧的交点位置
-        previousIntersections.upper = newUpperIntersections || new Map();
-        previousIntersections.lower = newLowerIntersections || new Map();
-    }
-    
+    // 更新统一残影系统的透明度衰减
+    ghostSystem.update(0.016);
+
+    // 渲染场景
     renderer.render(scene, camera);
 }
 
