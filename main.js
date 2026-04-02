@@ -592,6 +592,10 @@ function alignDiagonalToZAxis() {
 }
 
 alignDiagonalToZAxis(); // 执行旋转
+
+// 保存cubeGroup的初始四元数，用于计算倾斜角
+const initialQuaternion = cubeGroup.quaternion.clone();
+
 const merkaba2 = createMerkaba2('blue', 'orange');
 cubeGroup.add(merkaba2);
 // 发光强度控制（控制中心点光源亮度）
@@ -644,6 +648,66 @@ emissiveSliderValueElem.addEventListener('input', (e) => {
 
 // 存储上一帧的交点位置，用于绘制线段
 let previousIntersections = { upper: new Map(), lower: new Map() };
+
+// ========== 倾斜角控制 ==========
+const tiltAngleSlider = document.getElementById('tiltAngle');
+const tiltAngleValueLabel = document.getElementById('tiltAngleValue');
+
+// 计算cubeGroup相对于初始位置的倾斜角（度数）
+function calculateTiltAngle() {
+    // 计算当前四元数与初始四元数的差异
+    const relativeQuaternion = cubeGroup.quaternion.clone().multiply(initialQuaternion.clone().invert());
+    
+    // 从四元数提取旋转角度
+    const angle = 2 * Math.acos(Math.abs(relativeQuaternion.w));
+    
+    // 转换为度数
+    return THREE.MathUtils.radToDeg(angle);
+}
+
+// 更新倾斜角显示
+function updateTiltAngleDisplay() {
+    const angle = calculateTiltAngle();
+    tiltAngleSlider.value = angle.toFixed(1);
+    tiltAngleValueLabel.textContent = angle.toFixed(1);
+}
+
+// 通过slider设置倾斜角
+function setTiltAngle(angleDegrees) {
+    // 将角度转换为弧度
+    const angleRadians = THREE.MathUtils.degToRad(angleDegrees);
+    
+    // 重置cubeGroup的四元数为初始状态
+    cubeGroup.quaternion.copy(initialQuaternion);
+    
+    // 获取相机的右向量作为旋转轴（用于倾斜）
+    const cameraRight = new THREE.Vector3();
+    camera.matrix.extractBasis(cameraRight, new THREE.Vector3(), new THREE.Vector3());
+    
+    // 绕相机右轴旋转
+    cubeGroup.rotateOnWorldAxis(cameraRight, angleRadians);
+}
+
+// 监听slider变化
+tiltAngleSlider.addEventListener('input', (e) => {
+    const angle = parseFloat(e.target.value);
+    tiltAngleValueLabel.textContent = angle.toFixed(1);
+    setTiltAngle(angle);
+});
+
+// 滚轮调整倾斜角
+tiltAngleSlider.parentElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const step = e.altKey ? 0.1 : 1;
+    const delta = e.deltaY > 0 ? step : -step;
+    const currentValue = parseFloat(tiltAngleSlider.value);
+    const min = parseFloat(tiltAngleSlider.getAttribute('min'));
+    const max = parseFloat(tiltAngleSlider.getAttribute('max'));
+    const newValue = Math.max(min, Math.min(max, currentValue + delta));
+    tiltAngleSlider.value = newValue.toFixed(1);
+    tiltAngleValueLabel.textContent = newValue.toFixed(1);
+    setTiltAngle(newValue);
+});
 
 // 根据夹角计算粒子颜色（夹角越大颜色越亮）
 function getParticleColorByAngle(angle, isUpper) {
@@ -785,6 +849,9 @@ renderer.domElement.addEventListener('mousemove', (event) => {
     // 绕相机上轴旋转（对应鼠标Y移动）
     cubeGroup.rotateOnWorldAxis(cameraRight, deltaMove.y * 0.005);
 
+    // 更新倾斜角显示
+    updateTiltAngleDisplay();
+
     previousMousePosition = {
         x: event.clientX,
         y: event.clientY
@@ -826,6 +893,9 @@ renderer.domElement.addEventListener('touchmove', (event) => {
     cubeGroup.rotateOnWorldAxis(cameraUp, deltaMove.x * 0.005);
     // 绕相机上轴旋转（对应鼠标Y移动）
     cubeGroup.rotateOnWorldAxis(cameraRight, deltaMove.y * 0.005);
+
+    // 更新倾斜角显示
+    updateTiltAngleDisplay();
 
     previousMousePosition = {
         x: event.touches[0].clientX,
