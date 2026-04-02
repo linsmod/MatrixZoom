@@ -509,7 +509,7 @@ function getParticleColorByAngle(angle, isUpper) {
 }
 
 // 生成四面体边的线条轨迹
-function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previousMap) {
+function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previousMap, speed) {
     if (!tetraMesh || !tetraMesh.geometry) return;
     
     const positionAttr = tetraMesh.geometry.getAttribute('position');
@@ -520,6 +520,9 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
     
     // 当前帧的交点
     const currentIntersections = new Map();
+    
+    // 使用固定线段长度，不随速度变化
+    const lineLength = 0.1; // 固定长度
     
     for (const edge of edges) {
         // 将局部坐标转换为世界坐标
@@ -539,17 +542,20 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             
             // 计算颜色和生命周期
             const color = getParticleColorByAngle(angle, isUpper);
-            const lifetime = 1.0 + (angle / (Math.PI / 2)) * 1.0; // 缩短生命周期
+            const lifetime = 1.0 + (angle / (Math.PI / 2)) * 1.0;
             
-            // 如果上一帧有这个边的交点，绘制线段
-            if (previousMap.has(key)) {
-                const prevPos = previousMap.get(key);
-                // 只有当两点距离足够大时才绘制线段
-                const dist = prevPos.distanceTo(intersection);
-                if (dist > 0.01) {
-                    trailLineSystem.addLineSegment(prevPos, intersection, color, lifetime);
-                }
-            }
+            // 计算切线方向并绘制线段
+            // 旋转轴是(1,1,1)方向，在地面上的投影方向
+            const rotationAxis = new THREE.Vector3(1, 1, 1).normalize();
+            // 切线方向 = 位置向量 × 旋转轴
+            const tangent = new THREE.Vector3().crossVectors(intersection, rotationAxis).normalize();
+            // 投影到地面（y=0）
+            tangent.y = 0;
+            tangent.normalize();
+            
+            // 沿切线方向绘制固定长度的线段
+            const lineEnd = intersection.clone().add(tangent.multiplyScalar(lineLength));
+            trailLineSystem.addLineSegment(intersection, lineEnd, color, lifetime);
         }
     }
     
@@ -755,9 +761,9 @@ function animate() {
         upperWorldMatrix.copy(upperTetra.matrixWorld);
         lowerWorldMatrix.copy(lowerTetra.matrixWorld);
         
-        // 生成线条轨迹，传入上一帧的交点位置
-        const newUpperIntersections = generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper);
-        const newLowerIntersections = generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower);
+        // 生成线条轨迹，传入旋转速度
+        const newUpperIntersections = generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
+        const newLowerIntersections = generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
         
         // 更新上一帧的交点位置
         previousIntersections.upper = newUpperIntersections || new Map();
