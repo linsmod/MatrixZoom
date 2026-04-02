@@ -404,30 +404,31 @@ createGround();
 // 在地板上添加 Merkaba 文字
 function createGroundText() {
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 128;
+    canvas.width = 1024;
+    canvas.height = 1024;
     const context = canvas.getContext('2d');
     
     // 黑色背景
-    context.fillStyle = '#000000';
+    context.fillStyle = '#FFFFFF0F';
     context.fillRect(0, 0, canvas.width, canvas.height);
+    const p = 5;
     
     // 绘制发光效果
-    context.shadowColor = '#00ffff';
-    context.shadowBlur = 30;
-    context.fillStyle = '#00ffff';
-    context.font = 'bold 80px Arial';
+    context.shadowColor = '#d000ff';
+    context.shadowBlur = 60;
+    context.fillStyle = '#d000ff';
+    context.font = 'bold 200px Arial';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / p);
     
     // 再绘制一层白色核心
     context.shadowBlur = 0;
     context.fillStyle = '#ffffff';
-    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / p);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const geometry = new THREE.PlaneGeometry(6, 1.5);
+    const geometry = new THREE.PlaneGeometry(20, 20);
     const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -437,7 +438,7 @@ function createGroundText() {
     
     const textMesh = new THREE.Mesh(geometry, material);
     textMesh.rotation.x = -Math.PI / 2;
-    textMesh.position.set(0, 0.02, -4);
+    textMesh.position.set(0, 0.02, 0);
     scene.add(textMesh);
 }
 
