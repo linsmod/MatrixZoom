@@ -972,6 +972,10 @@ function stepSimulate() {
 }
 // 启动高速模拟定时器
 var simulationTimer = setInterval(()=>{
+    // reset pendingTempFrames if paused is changed to false
+    if(!paused){
+        pendingTempFrames = 0;
+    }
     if(!paused || pendingTempFrames>0){
         stepSimulate();
         pendingTempFrames--;
