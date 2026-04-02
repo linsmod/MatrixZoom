@@ -642,8 +642,8 @@ emissiveSliderValueElem.parentElement.addEventListener('wheel', (e) => {
     const min = parseFloat(emissiveSliderValueElem.getAttribute('min'));
     const max = parseFloat(emissiveSliderValueElem.getAttribute('max'));
     const currentValue = parseFloat(emissiveSliderValueElem.value);
-    // 向下滚动增加，向上滚动减少
-    const delta = e.deltaY > 0 ? step : -step;
+    // 向下滚动减少，向上滚动增加
+    const delta = e.deltaY > 0 ? -step : step;
     const value = currentValue + delta;
     if (value < min || value > max) return;
     emissiveSliderValueElem.value = value;
@@ -715,7 +715,7 @@ tiltAngleXSlider.addEventListener('input', (e) => {
 tiltAngleZSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.1 : 1;
-    const delta = e.deltaY > 0 ? step : -step;
+    const delta = e.deltaY > 0 ? -step : step;
     const min = parseFloat(tiltAngleZSlider.getAttribute('min'));
     const max = parseFloat(tiltAngleZSlider.getAttribute('max'));
     const newValue = Math.max(min, Math.min(max, currentTiltAngleZ + delta));
@@ -729,7 +729,7 @@ tiltAngleZSlider.parentElement.addEventListener('wheel', (e) => {
 tiltAngleXSlider.parentElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.1 : 1;
-    const delta = e.deltaY > 0 ? step : -step;
+    const delta = e.deltaY > 0 ? -step : step;
     const min = parseFloat(tiltAngleXSlider.getAttribute('min'));
     const max = parseFloat(tiltAngleXSlider.getAttribute('max'));
     const newValue = Math.max(min, Math.min(max, currentTiltAngleX + delta));
