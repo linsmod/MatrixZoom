@@ -900,6 +900,7 @@ const simFreqDisplay = document.getElementById('simFreq');
 let renderFrameCount = 0;
 let renderFPS = 0;
 const renderFPSDisplay = document.getElementById('renderFPS');
+const ghostCountDisplay = document.getElementById('ghostCount');
 
 // 帧率更新间隔（毫秒）
 const fpsUpdateInterval = 500;
@@ -967,6 +968,10 @@ function animate() {
         renderFPS = Math.round(renderFrameCount * 1000 / (now - lastRenderTime));
         renderFPSDisplay.textContent = renderFPS;
         renderFrameCount = 0;
+
+        // 更新残影数量显示（只计算mesh类型，上下合并算一个梅尔卡巴）
+        const meshCount = simulationSystem.ghosts.filter(g => g.type === 'mesh').length;
+        ghostCountDisplay.textContent = Math.floor(meshCount / 2);
 
         lastSampleOfSimFrame = simulationSystem.frames;
         lastRenderTime = now;
