@@ -202,3 +202,34 @@ button:active {
 .tip-item:last-child {
     border-bottom: none;
 }
+
+/* 帧率显示样式 */
+.sidebar-group.fps-display {
+    margin-top: 5px;
+}
+
+.fps-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    gap: 8px;
+}
+
+.fps-label {
+    font-size: 12px;
+    color: #aaa;
+    min-width: 40px;
+}
+
+.fps-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4CAF50;
+    min-width: 35px;
+    text-align: right;
+}
+
+.fps-unit {
+    font-size: 11px;
+    color: #888;
+}

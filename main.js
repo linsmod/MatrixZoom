@@ -5,14 +5,15 @@ import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
 import { createMerkaba2 } from './mkb2';
 
-// 统一残影系统类 - 同时处理网格残影和线段拖尾
-class GhostSystem {
+// 同时处理网格残影和线段拖尾
+class SimulationSystem {
     constructor(scene, maxGhosts = 50) {
         this.scene = scene;
         this.maxGhosts = maxGhosts;
         this.ghosts = [];
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
+        this.frame = 0; // 模拟帧计数
     }
 
     // 克隆网格创建残影
@@ -38,7 +39,8 @@ class GhostSystem {
     }
 
     // 添加网格残影（四面体等）
-    addMeshGhost(mesh, opacity = 0.2, lifetime = 0.3) {
+    // lifetime 为帧数
+    addMeshGhost(mesh, opacity = 0.2, angle = 0, lifetime = 30) {
         if (this.ghosts.length >= this.maxGhosts) {
             this._removeOldest();
         }
@@ -50,52 +52,62 @@ class GhostSystem {
         this.ghosts.push({
             object: ghost,
             type: 'mesh',
-            maxOpacity: opacity,
+            maxOpacity: opacity-(angle/180*Math.PI*opacity),
             lifetime: lifetime,
             maxLifetime: lifetime,
-            createdAt: Date.now()
+            createdAt: this.frame // 创建时的帧数
         });
     }
 
-    // 添加线段残影（拖尾轨迹）
-    addLineGhost(start, end, color, opacity = 0.5, lifetime = 1.0) {
-        if (this.ghosts.length >= this.maxGhosts) {
-            this._removeOldest();
+    // 添加线段残影（拖尾轨迹）- 在时间线上产生多个残影
+    // lifetime 为帧数
+    addLineGhost(start, end, color, opacity = 0.5, lifetime = 60, trailCount = 5) {
+        // 生成多个残影，形成时间线拖尾效果
+        for (let i = 0; i < trailCount; i++) {
+            if (this.ghosts.length >= this.maxGhosts) {
+                this._removeOldest();
+            }
+
+            // 每个残影有不同的透明度和延迟
+            const ratio = i / trailCount;
+            const ghostOpacity = opacity * (1 - ratio * 0.7); // 透明度递减
+            const ghostLifetime = Math.floor(lifetime * (1 - ratio * 0.5)); // 生命周期递减
+            const delay = Math.floor(ratio * 5); // 帧数延迟，产生拖尾效果
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array([
+                start.x, 0.02, start.z,
+                end.x, 0.02, end.z
+            ]);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.LineBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: ghostOpacity,
+                blending: THREE.AdditiveBlending
+            });
+
+            const line = new THREE.Line(geometry, material);
+            this.ghostGroup.add(line);
+
+            this.ghosts.push({
+                object: line,
+                type: 'line',
+                maxOpacity: ghostOpacity,
+                lifetime: ghostLifetime,
+                maxLifetime: ghostLifetime,
+                createdAt: this.frame - delay // 延迟创建帧数，产生时间差
+            });
         }
-
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array([
-            start.x, 0.02, start.z,
-            end.x, 0.02, end.z
-        ]);
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        const material = new THREE.LineBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: opacity,
-            blending: THREE.AdditiveBlending
-        });
-
-        const line = new THREE.Line(geometry, material);
-        this.ghostGroup.add(line);
-
-        this.ghosts.push({
-            object: line,
-            type: 'line',
-            maxOpacity: opacity,
-            lifetime: lifetime,
-            maxLifetime: lifetime,
-            createdAt: Date.now()
-        });
     }
 
     // 添加梅尔卡巴的残影快照
-    addMerkabaGhost(merkaba, opacity = 0.2, lifetime = 0.3) {
+    addMerkaba(merkaba, opacity = 0.2, upperAngle = 0, lowerAngle = 0, lifetime = 30) {
         const upperTetra = merkaba.children[0];
         const lowerTetra = merkaba.children[1];
-        this.addMeshGhost(upperTetra, opacity, lifetime);
-        this.addMeshGhost(lowerTetra, opacity, lifetime);
+        this.addMeshGhost(upperTetra, opacity, upperAngle, lifetime);
+        this.addMeshGhost(lowerTetra, opacity, lowerAngle, lifetime);
     }
 
     // 移除最老的残影
@@ -108,13 +120,13 @@ class GhostSystem {
         }
     }
 
-    // 更新所有残影（独立渐变动画）
-    update(deltaTime) {
-        const now = Date.now();
-
+    // 推进模拟一步
+    stepSimulation(upperAngle, lowerAngle) {
+        this.frame++;
+        // 更新所有残影的透明度衰减
         for (let i = this.ghosts.length - 1; i >= 0; i--) {
             const ghostData = this.ghosts[i];
-            const age = (now - ghostData.createdAt) / 1000;
+            const age = this.frame - ghostData.createdAt; // 帧数年龄
             const lifeRatio = 1 - (age / ghostData.maxLifetime);
 
             if (lifeRatio <= 0 || age >= ghostData.maxLifetime) {
@@ -531,15 +543,11 @@ cubeGroup.add(merkaba2);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const ghostSystem = new GhostSystem(scene, 100); // 最大残影数
+const ghostSystem = new SimulationSystem(scene, 300); // 最大残影数（增加以支持更密集拖影）
 
-// 残影生成控制变量
-let ghostSpawnCounter = 0;
-const ghostSpawnInterval = 4; // 每4次模拟生成一个残影（约60fps时每帧一个）
-
-// 轨迹生成控制变量
-let trailSpawnTimer = 0;
-const trailSpawnInterval = 0.016; // 每帧生成
+// 模拟系统帧计数
+let simulationFrame = 0;
+const ghostSpawnInterval = 2; // 每2个模拟帧产生一个残影（200fps下每10ms一个）
 
 // 存储上一帧的交点位置，用于绘制线段
 let previousIntersections = { upper: new Map(), lower: new Map() };
@@ -597,9 +605,9 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             // 计算边与地面的夹角
             const angle = calculateAngleWithGround(worldStart, worldEnd);
             
-            // 计算颜色和生命周期
+            // 计算颜色和生命周期（帧数）
             const color = getParticleColorByAngle(angle, isUpper);
-            const lifetime = 1.0 + (angle / (Math.PI / 2)) * 1.0;
+            const lifetime = Math.floor(60 + (angle / (Math.PI / 2)) * 60); // 60-120帧
             
             // 计算切线方向并绘制线段
             // 旋转轴是(1,1,1)方向，在地面上的投影方向
@@ -747,8 +755,9 @@ outlineEffect.enabled = true; // 启用轮廓效果
 outlineEffect.autoClear = false; // 设置是否自动清除之前的渲染结果，通常设置为false以保持之前的渲染结果不变。
 
 // 旋转速度控制
-let rotationSpeed = 0.01;
-let isRotating = true; // 是否正在旋转
+let rotationSpeed = 0.6; // 弧度/秒（每秒旋转的弧度数）
+let isRotating = true; // 旋转状态
+
 const speedSlider = document.getElementById('rotationSpeed');
 const speedValue = document.getElementById('speedValue');
 
@@ -760,19 +769,43 @@ speedSlider.addEventListener('input', (e) => {
 // 空格键控制旋转暂停/继续
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
-        e.preventDefault(); // 防止页面滚动
+        e.preventDefault();
         isRotating = !isRotating;
     }
 });
 
 // ========== 高速模拟 + 分离渲染架构 ==========
 // 模拟更新频率（可高于渲染帧率）
-const simulationInterval = 4; // 4ms，约250fps的模拟频率
+const simulationInterval = 1000/200; // 5ms，约200fps的模拟频率
 let simulationTime = 0;
 
-// 旋转模拟函数 - 由高速定时器调用
+// ========== 帧率统计 ==========
+// 模拟帧率统计
+let simFrameCount = 0;
+let simLastTime = performance.now();
+let simFPS = 0;
+const simFPSDisplay = document.getElementById('simFPS');
+
+// 渲染帧率统计
+let renderFrameCount = 0;
+let renderLastTime = performance.now();
+let renderFPS = 0;
+const renderFPSDisplay = document.getElementById('renderFPS');
+
+// 帧率更新间隔（毫秒）
+const fpsUpdateInterval = 500;
+
+// 旋转模拟函数 - 由高速定时器调用（永不停止）
 function simulateRotation() {
-    if (!isRotating) return;
+    // 模拟帧率统计
+    simFrameCount++;
+    const now = performance.now();
+    if (now - simLastTime >= fpsUpdateInterval) {
+        simFPS = Math.round(simFrameCount * 1000 / (now - simLastTime));
+        simFPSDisplay.textContent = simFPS;
+        simFrameCount = 0;
+        simLastTime = now;
+    }
 
     // 计算每次模拟的时间步长
     const dt = simulationInterval / 1000; // 转换为秒
@@ -785,8 +818,9 @@ function simulateRotation() {
     const axis = new THREE.Vector3(1, 1, 1).normalize();
 
     // 计算每次模拟的旋转角度（基于实际时间）
-    const upperAngle = rotationSpeed * 1 * (simulationInterval / 16.67); // 归一化到60fps
-    const lowerAngle = rotationSpeed * 3 * (simulationInterval / 16.67);
+    // rotationSpeed 单位：弧度/秒，dt 单位：秒
+    const upperAngle = rotationSpeed * dt; // 上四面体旋转角度
+    const lowerAngle = rotationSpeed * 3 * dt; // 下四面体旋转角度（3倍速）
 
     const quaternion = new THREE.Quaternion();
 
@@ -802,19 +836,26 @@ function simulateRotation() {
     upperTetra.updateMatrixWorld(true);
     lowerTetra.updateMatrixWorld(true);
 
+    // 模拟帧计数
+    simulationFrame++;
+
+    // 只有"眼睛睁开"时才产生残影和轨迹
     // 生成线条轨迹
-    const upperWorldMatrix = new THREE.Matrix4().copy(upperTetra.matrixWorld);
-    const lowerWorldMatrix = new THREE.Matrix4().copy(lowerTetra.matrixWorld);
+        const upperWorldMatrix = new THREE.Matrix4().copy(upperTetra.matrixWorld);
+        const lowerWorldMatrix = new THREE.Matrix4().copy(lowerTetra.matrixWorld);
 
-    generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
-    generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
+        generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
+        generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
 
-    // 生成残影（每隔一定帧数）
-    ghostSpawnCounter++;
-    if (ghostSpawnCounter >= ghostSpawnInterval) {
-        ghostSpawnCounter = 0;
-        ghostSystem.addMerkabaGhost(merkaba2, 0.2, 0.3); // opacity: 0.2, lifetime: 0.3s
-    }
+        // 生成残影（每隔一定帧数）
+        if (simulationFrame % ghostSpawnInterval === 0) {
+            ghostSystem.addMerkaba(merkaba2, 0.15 ,0.15, 500); // opacity更低，lifetime更长
+        }
+
+        // 残影系统更新（只在眼睛睁开时）
+        ghostSystem.stepSimulation(upperAngle, lowerAngle);
+    // 眼睛闭上时：模拟继续，但不产生新残影，也不更新残影衰减
+    // 渲染时会显示"冻结"的残影状态
 }
 
 // 启动高速模拟定时器
@@ -825,8 +866,15 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    // 更新统一残影系统的透明度衰减
-    ghostSystem.update(0.016);
+    // 渲染帧率统计
+    renderFrameCount++;
+    const now = performance.now();
+    if (now - renderLastTime >= fpsUpdateInterval) {
+        renderFPS = Math.round(renderFrameCount * 1000 / (now - renderLastTime));
+        renderFPSDisplay.textContent = renderFPS;
+        renderFrameCount = 0;
+        renderLastTime = now;
+    }
 
     // 渲染场景
     renderer.render(scene, camera);
