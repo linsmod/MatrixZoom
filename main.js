@@ -840,7 +840,7 @@ renderer.domElement.addEventListener('touchmove', (event) => {
         y: event.touches[0].clientY
     };
     if(controlMode === 'object'){
-        pendingTempFrames = rotationFrequency * tempCycle;
+        pendingTempFrames = parseInt(rotationFrequency*tempCycle);
         return;
     }
 });
@@ -868,10 +868,12 @@ const speedSlider = document.getElementById('rotationSpeed');
 const speedValue = document.getElementById('speedValue');
 const tempCycle = 15;
 speedSlider.addEventListener('input', (e) => {
+    e.preventDefault();
     rotationFrequency = parseFloat(e.target.value);
     rotationSpeed = rotationFrequency * Math.PI * 2;
     speedValue.textContent = rotationFrequency.toFixed(2);
-    pendingTempFrames = rotationFrequency*tempCycle;
+    if(paused)
+        pendingTempFrames = parseInt(rotationFrequency*tempCycle);
 });
 
 // 鼠标悬停在滑块上时，支持滚轮调整
@@ -881,18 +883,20 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
     const delta = e.deltaY > 0 ? -step : step;
     let roteFreq =rotationFrequency + delta;
     let roteSpeed = roteFreq * Math.PI * 2;
+    let maxSpeed = parseFloat(speedSlider.getAttribute('max'));
     if(roteSpeed<0){
-        roteSpeed = 0;
+        roteSpeed = parseFloat(speedSlider.getAttribute('min'));
         return;
     }
-    else if(roteSpeed>1000){
-        roteSpeed = 1000;
+    else if(roteSpeed>maxSpeed){
+        roteSpeed = maxSpeed;
     }
     rotationFrequency = roteFreq;
     rotationSpeed = roteSpeed;
     speedSlider.value = roteFreq;
     speedValue.textContent = roteFreq.toFixed(2);
-    pendingTempFrames = rotationFrequency*tempCycle;
+    if(paused)
+        pendingTempFrames = parseInt(rotationFreq*tempCycle);
 });
 
 // 空格键控制旋转暂停/继续
@@ -991,7 +995,6 @@ function animate() {
         simFPSDisplay.textContent = simFPS;
         simFreq = rotationSpeed / (Math.PI * 2);
         simFreqDisplay.textContent = simFreq.toFixed(2);
-
 
         renderFPS = Math.round(renderFrameCount * 1000 / (now - lastRenderTime));
         renderFPSDisplay.textContent = renderFPS;
