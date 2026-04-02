@@ -33,6 +33,10 @@ class SimulationSystem {
         const template = this.templates.get(key);
         if (!template) return null;
 
+        // 根据透明度衰减发光强度
+        const baseEmissiveIntensity = template.materialConfig.emissiveIntensity || 1;
+        const adjustedEmissiveIntensity = baseEmissiveIntensity * opacity;
+
         const material = new THREE.MeshPhongMaterial({
             ...template.materialConfig,
             transparent: true,
@@ -40,6 +44,7 @@ class SimulationSystem {
             blending: THREE.AdditiveBlending,
             depthWrite: false, // 禁用深度写入，让线段能透过显示
             depthTest: false, // 禁用深度测试，避免GPU绘制闪烁
+            emissiveIntensity: adjustedEmissiveIntensity, // 发光强度随透明度衰减
         });
 
         const mesh = new THREE.Mesh(template.geometry.clone(), material);
@@ -69,12 +74,17 @@ class SimulationSystem {
         const mesh = this.createFromTemplate(templateKey, matrixWorld, adjustedOpacity);
         if (!mesh) return;
 
+        // 获取模板的基础发光强度用于后续衰减
+        const template = this.templates.get(templateKey);
+        const baseEmissiveIntensity = template ? (template.materialConfig.emissiveIntensity || 1) : 1;
+
         this.ghostGroup.add(mesh);
         this.ghosts.push({
             object: mesh,
             type: 'mesh',
             templateKey,
             maxOpacity: adjustedOpacity,
+            baseEmissiveIntensity: baseEmissiveIntensity, // 保存基础发光强度
             lifetime: lifetime,
             maxLifetime: lifetime,
             bornFrame: this.frames
@@ -163,6 +173,11 @@ class SimulationSystem {
                     this.ghosts.splice(i, 1);
                 } else {
                     ghostData.object.material.opacity = newOpacity;
+                    // 同步衰减发光强度（仅对网格类型）
+                    if (ghostData.type === 'mesh' && ghostData.object.material.emissiveIntensity !== undefined) {
+                        const baseEmissiveIntensity = ghostData.baseEmissiveIntensity || 1;
+                        ghostData.object.material.emissiveIntensity = baseEmissiveIntensity * newOpacity;
+                    }
                 }
             }
         }
