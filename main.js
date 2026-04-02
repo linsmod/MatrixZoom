@@ -3,9 +3,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { createMerkaba } from './mkb';
 import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
-import { createMerkaba2 } from './mkb2';
+import { createMerkaba2, getMerkabaTemplates } from './mkb2';
 
-// 同时处理网格残影和线段拖尾
+// 统一的影子系统 - 所有对象都从模板生成，不再区分本体和影子
 class SimulationSystem {
     constructor(scene, maxGhosts = 50) {
         this.scene = scene;
@@ -14,68 +14,73 @@ class SimulationSystem {
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
         this.frame = 0; // 模拟帧计数
+        this.templates = new Map(); // 模板存储：key -> { geometry, materialConfig }
     }
 
-    // 克隆网格创建残影
-    cloneMeshAsGhost(mesh, opacity = 0.3) {
-        if (!mesh || !mesh.geometry) return null;
+    // 注册模板（几何体和材质配置）
+    registerTemplate(key, geometry, materialConfig) {
+        this.templates.set(key, {
+            geometry: geometry.clone(),
+            materialConfig: { ...materialConfig }
+        });
+    }
 
-        const geometry = mesh.geometry.clone();
+    // 从模板创建网格实例
+    createFromTemplate(key, matrixWorld, opacity = 0.3) {
+        const template = this.templates.get(key);
+        if (!template) return null;
+
         const material = new THREE.MeshPhongMaterial({
-            color: mesh.material.color,
+            ...template.materialConfig,
             transparent: true,
             opacity: opacity,
             blending: THREE.AdditiveBlending,
-            side: THREE.DoubleSide,
-            emissive: mesh.material.emissive,
-            emissiveIntensity: mesh.material.emissiveIntensity * 0.5,
         });
 
-        const ghost = new THREE.Mesh(geometry, material);
-        mesh.updateMatrixWorld(true);
-        ghost.applyMatrix4(mesh.matrixWorld);
-
-        return ghost;
+        const mesh = new THREE.Mesh(template.geometry.clone(), material);
+        mesh.applyMatrix4(matrixWorld);
+        return mesh;
     }
 
-    // 添加网格残影（四面体等）
-    // lifetime 为帧数，angle 为每次模拟旋转的角度（弧度）
-    addMeshGhost(mesh, opacity = 0.2, angle = 0, lifetime = 30) {
+    // 获取当前填充率（0-1）
+    getFilling() {
+        return this.ghosts.length / this.maxGhosts;
+    }
+
+    // 计算调整后的透明度（基于填充率）
+    calculateAdjustedOpacity(baseOpacity) {
+        const filling = this.getFilling();
+        return baseOpacity * (1 - filling * 0.8); // 最多衰减80%
+    }
+
+    // 添加网格快照（从模板生成）
+    addMeshSnapshot(templateKey, matrixWorld, baseOpacity = 0.3, lifetime = 30) {
         if (this.ghosts.length >= this.maxGhosts) {
             this._removeOldest();
         }
 
-        const ghost = this.cloneMeshAsGhost(mesh, opacity);
-        if (!ghost) return;
+        const adjustedOpacity = this.calculateAdjustedOpacity(baseOpacity);
+        const mesh = this.createFromTemplate(templateKey, matrixWorld, adjustedOpacity);
+        if (!mesh) return;
 
-        const filling = this.ghosts.length * 1.0 / this.maxGhosts; // 归一化到 0-1
-        const adjustedOpacity = opacity * (1 - filling * 0.8); // 最多衰减80%
-
-        this.ghostGroup.add(ghost);
+        this.ghostGroup.add(mesh);
         this.ghosts.push({
-            object: ghost,
+            object: mesh,
             type: 'mesh',
+            templateKey,
             maxOpacity: adjustedOpacity,
             lifetime: lifetime,
             maxLifetime: lifetime,
-            createdAt: this.frame // 创建时的帧数
+            bornFrame: this.frame
         });
     }
 
-    // 添加线段残影（拖尾轨迹）- 在时间线上产生多个残影
-    // lifetime 为帧数
-    addLineGhost(start, end, color, opacity = 0.5, lifetime = 60, trailCount = 5) {
-        // 生成多个残影，形成时间线拖尾效果
+    // 添加线段残影（拖尾轨迹）
+    addLineGhost(start, end, color, opacity = 0.5, lifetime = 6000, trailCount = 5) {
         for (let i = 0; i < trailCount; i++) {
             if (this.ghosts.length >= this.maxGhosts) {
                 this._removeOldest();
             }
-
-            // 每个残影有不同的透明度和延迟
-            const ratio = i / trailCount;
-            const ghostOpacity = opacity * (1 - ratio * 0.7); // 透明度递减
-            const ghostLifetime = Math.floor(lifetime * (1 - ratio * 0.5)); // 生命周期递减
-            const delay = Math.floor(ratio * 5); // 帧数延迟，产生拖尾效果
 
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array([
@@ -83,11 +88,11 @@ class SimulationSystem {
                 end.x, 0.02, end.z
             ]);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
+            const adjustedOpacity = this.calculateAdjustedOpacity(opacity);
             const material = new THREE.LineBasicMaterial({
                 color: color,
                 transparent: true,
-                opacity: ghostOpacity,
+                opacity: adjustedOpacity,
                 blending: THREE.AdditiveBlending
             });
 
@@ -97,23 +102,21 @@ class SimulationSystem {
             this.ghosts.push({
                 object: line,
                 type: 'line',
-                maxOpacity: ghostOpacity,
-                lifetime: ghostLifetime,
-                maxLifetime: ghostLifetime,
-                createdAt: this.frame - delay // 延迟创建帧数，产生时间差
+                maxOpacity: adjustedOpacity,
+                lifetime: lifetime,
+                maxLifetime: lifetime,
+                bornFrame: this.frame
             });
         }
     }
 
-    // 添加梅尔卡巴的残影快照
-    addMerkaba(merkaba, opacity = 0.2, upperAngle = 0, lowerAngle = 0, lifetime = 30) {
-        const upperTetra = merkaba.children[0];
-        const lowerTetra = merkaba.children[1];
-        this.addMeshGhost(upperTetra, opacity, upperAngle, lifetime);
-        this.addMeshGhost(lowerTetra, opacity, lowerAngle, lifetime);
+    // 添加梅尔卡巴快照（两个四面体）
+    addMerkabaSnapshot(upperMatrix, lowerMatrix, baseOpacity = 0.3, lifetime = 1000) {
+        this.addMeshSnapshot('upperTetra', upperMatrix, baseOpacity, lifetime);
+        this.addMeshSnapshot('lowerTetra', lowerMatrix, baseOpacity, lifetime);
     }
 
-    // 移除最老的残影
+    // 移除最老的影子
     _removeOldest() {
         const oldest = this.ghosts.shift();
         if (oldest) {
@@ -126,10 +129,11 @@ class SimulationSystem {
     // 推进模拟一步
     stepSimulation() {
         this.frame++;
-        // 更新所有残影的透明度衰减
+
+        // 更新所有影子的透明度衰减
         for (let i = this.ghosts.length - 1; i >= 0; i--) {
             const ghostData = this.ghosts[i];
-            const age = this.frame - ghostData.createdAt; // 帧数年龄
+            const age = this.frame - ghostData.bornFrame;
             const lifeRatio = 1 - (age / ghostData.maxLifetime);
 
             if (lifeRatio <= 0 || age >= ghostData.maxLifetime) {
@@ -138,13 +142,12 @@ class SimulationSystem {
                 ghostData.object.material.dispose();
                 this.ghosts.splice(i, 1);
             } else {
-                // 独立渐变：每个残影根据自己的生命周期衰减
                 ghostData.object.material.opacity = lifeRatio * ghostData.maxOpacity;
             }
         }
     }
 
-    // 清除所有残影
+    // 清除所有影子
     clear() {
         for (const ghostData of this.ghosts) {
             this.ghostGroup.remove(ghostData.object);
@@ -548,9 +551,13 @@ scene.add(cubeGroup);
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
 const simulationSystem = new SimulationSystem(scene, 300); // 最大残影数（增加以支持更密集拖影）
 
+// 注册梅尔卡巴模板
+const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
+simulationSystem.registerTemplate('upperTetra', merkabaTemplates.upperTetra.geometry, merkabaTemplates.upperTetra.materialConfig);
+simulationSystem.registerTemplate('lowerTetra', merkabaTemplates.lowerTetra.geometry, merkabaTemplates.lowerTetra.materialConfig);
+
 // 模拟系统帧计数
 let simulationFrame = 0;
-const ghostSpawnInterval = 2; // 每2个模拟帧产生一个残影（200fps下每10ms一个）
 
 // 存储上一帧的交点位置，用于绘制线段
 let previousIntersections = { upper: new Map(), lower: new Map() };
@@ -610,7 +617,7 @@ function generateTetrahedronLineTrails(tetraMesh, isUpper, worldMatrix, previous
             
             // 计算颜色和生命周期（帧数）
             const color = getParticleColorByAngle(angle, isUpper);
-            const lifetime = Math.floor(60 + (angle / (Math.PI / 2)) * 60); // 60-120帧
+            const lifetime = 1000; // 1000帧
             
             // 计算切线方向并绘制线段
             // 旋转轴是(1,1,1)方向，在地面上的投影方向
@@ -864,8 +871,8 @@ function simulateFrame() {
     generateTetrahedronLineTrails(upperTetra, true, upperWorldMatrix, previousIntersections.upper, rotationSpeed);
     generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
 
-    // 生成残影，传入角度用于计算浓度
-    simulationSystem.addMerkaba(merkaba2, 0.3, upperAngle, lowerAngle, 100);
+    // 生成快照（从模板创建，统一透明度策略）
+    simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, 1000);
     // 残影系统更新
     simulationSystem.stepSimulation();
 }
