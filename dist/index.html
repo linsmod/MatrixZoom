@@ -4,15 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>展示型魔方</title>
-  <script type="module" crossorigin src="/assets/index-BowmxRQ7.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DapnPCnL.css">
+  <script type="module" crossorigin src="/assets/index-DnWJlnLx.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-TV9DO--o.css">
 </head>
 <body>
     <div id="container"></div>
     <div id="controls">
         <div class="control-group">
-            <label for="rotationSpeed">旋转速度: <span id="speedValue">0.01</span></label>
-            <input type="range" id="rotationSpeed" min="0" max="2" step="0.001" value="0.01">
+            <label for="rotationSpeed">旋转频率(Hz): <span id="speedValue">0.10</span></label>
+            <input type="range" id="rotationSpeed" min="0" max="1000" step="0.01" value="0.1">
+        </div>
+    </div>
+    <div id="sidebar">
+        <div class="sidebar-group">
+            <label for="projectionMode">投影模式</label>
+            <select id="projectionMode">
+                <option value="perspective">透视投影</option>
+                <option value="orthographic">正交投影</option>
+            </select>
+        </div>
+        <div class="sidebar-group">
+            <label>控制模式 CTRL</label>
+            <div id="controlModeDisplay">相机控制</div>
+        </div>
+        <div class="sidebar-group">
+            <label for="emissiveIntensity">发光强度: <span id="emissiveValue">0.00</span></label>
+            <input type="range" id="emissiveIntensity" min="0" max="0.1" step="0.001" value="0">
+        </div>
+        <div class="sidebar-group fps-display">
+            <label>帧率监控</label>
+            <div class="fps-row">
+                <span class="fps-label">模拟:</span>
+                <span id="simFPS" class="fps-value">0</span>
+                <span class="fps-unit">FPS</span>
+            </div>
+            <div class="fps-row">
+                <span class="fps-label">渲染:</span>
+                <span id="renderFPS" class="fps-value">0</span>
+                <span class="fps-unit">FPS</span>
+            </div>
+            <div class="fps-row">
+                <span class="fps-label">频率:</span>
+                <span id="simFreq" class="fps-value">0.00</span>
+                <span class="fps-unit">Hz</span>
+            </div>
+        </div>
+        <div class="sidebar-group tips">
+            <div class="tip-title">交互说明</div>
+            <div class="tip-item">🖱️ 左键拖动<br>旋转相机视角</div>
+            <div class="tip-item">🔄 滚轮<br>缩放视图</div>
+            <div class="tip-item">⌨️ Ctrl + 左键<br>旋转物体</div>
+            <div class="tip-item">⏸️ 空格键<br>暂停/继续旋转</div>
         </div>
     </div>
 </body>

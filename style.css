@@ -20,7 +20,7 @@ body {
 
 #controls {
     position: fixed;
-    bottom: 200px;
+    bottom: 120px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
