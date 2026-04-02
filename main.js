@@ -358,6 +358,8 @@ sideControls.dampingFactor = 0.05;
 sideControls.screenSpacePanning = false;
 sideControls.minDistance = 3;
 sideControls.maxDistance = 30;
+sideControls.maxPolarAngle = Math.PI / 2; // 限制不能翻转到地面以下
+sideControls.minPolarAngle = 0.1; // 限制不能完全从正上方看
 sideControls.enabled = true; // 默认启用
 
 // 创建透视相机和正交相机
