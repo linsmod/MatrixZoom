@@ -404,31 +404,30 @@ createGround();
 // 在地板上添加 Merkaba 文字
 function createGroundText() {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = 512;
+    canvas.height = 128;
     const context = canvas.getContext('2d');
     
     // 黑色背景
-    context.fillStyle = '#FFFFFF0F';
+    context.fillStyle = '#00000079';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    const p = 5;
     
     // 绘制发光效果
-    context.shadowColor = '#d000ff';
-    context.shadowBlur = 60;
-    context.fillStyle = '#d000ff';
-    context.font = 'bold 200px Arial';
+    context.shadowColor = '#00ffff';
+    context.shadowBlur = 30;
+    context.fillStyle = '#00ffff';
+    context.font = 'bold 80px Arial';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText('Merkaba', canvas.width / 2, canvas.height / p);
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
     
     // 再绘制一层白色核心
     context.shadowBlur = 0;
-    context.fillStyle = '#ffffff';
-    context.fillText('Merkaba', canvas.width / 2, canvas.height / p);
+    context.fillStyle = '#ffffffd7';
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const geometry = new THREE.PlaneGeometry(20, 20);
+    const geometry = new THREE.PlaneGeometry(6, 1.5);
     const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -438,7 +437,7 @@ function createGroundText() {
     
     const textMesh = new THREE.Mesh(geometry, material);
     textMesh.rotation.x = -Math.PI / 2;
-    textMesh.position.set(0, 0.02, 0);
+    textMesh.position.set(0, 0.02, -8);
     scene.add(textMesh);
 }
 
@@ -469,7 +468,11 @@ function createTextTexture(text, color) {
 // 创建文字精灵
 function createTextSprite(text, color, position) {
     const texture = createTextTexture(text, color);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+        map: texture,
+        transparent: true,
+        opacity: 1
+    });
     const sprite = new THREE.Sprite(spriteMaterial);
     sprite.scale.set(0.5, 0.5, 0.5);
     sprite.position.copy(position);
@@ -477,13 +480,16 @@ function createTextSprite(text, color, position) {
 }
 
 // 添加坐标轴标注
-const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(12, 0, 0));
+const xLabel = createTextSprite('X', '#ff0000', new THREE.Vector3(9, 0.5, 0));
 const yLabel = createTextSprite('Y', '#00ff00', new THREE.Vector3(0, 12, 0));
-const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0, 12));
+const zLabel = createTextSprite('Z', '#0000ff', new THREE.Vector3(0, 0.5, 9));
 
 scene.add(xLabel);
 scene.add(yLabel);
 scene.add(zLabel);
+
+// 存储所有坐标轴标签，用于根据相机距离调整透明度
+const axisLabels = [xLabel, yLabel, zLabel];
 
 // 添加环境光
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -1245,10 +1251,36 @@ var simulationTimer = setInterval(()=>{
     }
 }, 0);
 
+// 根据相机距离更新坐标轴标签透明度
+function updateAxisLabelsOpacity() {
+    const cameraPosition = camera.position;
+    
+    for (const label of axisLabels) {
+        // 计算标签到相机的距离
+        const distance = label.position.distanceTo(cameraPosition);
+        
+        // 透明度计算：距离越近透明度越低
+        // 距离范围：3-15，透明度范围：0.1-1
+        const minDistance = 3;
+        const maxDistance = 15;
+        const minOpacity = 0.1;
+        const maxOpacity = 1;
+        
+        // 线性插值计算透明度
+        const t = Math.max(0, Math.min(1, (distance - minDistance) / (maxDistance - minDistance)));
+        const opacity = minOpacity + t * (maxOpacity - minOpacity);
+        
+        label.material.opacity = opacity;
+    }
+}
+
 // 渲染循环 - 只负责渲染，与模拟分离
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    
+    // 更新坐标轴标签透明度
+    updateAxisLabelsOpacity();
 
     // 模拟系统具有更快的帧率，
     // 渲染系统只是渲染时对其采样
