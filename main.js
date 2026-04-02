@@ -4,6 +4,163 @@ import { createMerkaba } from './mkb';
 import { OutlineEffect } from 'three/examples/jsm/Addons.js';
 import { createBackground } from './bg';
 import { createMerkaba2 } from './mkb2';
+
+// 粒子系统类 - 用于生成会消失的粒子轨迹
+class ParticleTrailSystem {
+    constructor(scene, maxParticles = 3000) {
+        this.scene = scene;
+        this.maxParticles = maxParticles;
+        this.particles = [];
+        this.trailGroup = new THREE.Group();
+        this.scene.add(this.trailGroup);
+        
+        // 粒子几何体（小球）
+        this.particleGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+    }
+    
+    // 创建单个粒子
+    createParticle(position, color, lifetime = 3.0) {
+        if (this.particles.length >= this.maxParticles) {
+            // 移除最老的粒子
+            const oldest = this.particles.shift();
+            this.trailGroup.remove(oldest.mesh);
+            oldest.mesh.geometry.dispose();
+            oldest.mesh.material.dispose();
+        }
+        
+        const material = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 1.0
+        });
+        
+        const mesh = new THREE.Mesh(this.particleGeometry, material);
+        mesh.position.copy(position);
+        mesh.position.y = 0.01; // 稍微高于地面
+        
+        this.trailGroup.add(mesh);
+        
+        this.particles.push({
+            mesh: mesh,
+            lifetime: lifetime,
+            maxLifetime: lifetime,
+            createdAt: Date.now()
+        });
+    }
+    
+    // 更新所有粒子
+    update(deltaTime) {
+        const now = Date.now();
+        
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            const age = (now - particle.createdAt) / 1000;
+            
+            if (age >= particle.maxLifetime) {
+                // 粒子过期，移除
+                this.trailGroup.remove(particle.mesh);
+                particle.mesh.geometry.dispose();
+                particle.mesh.material.dispose();
+                this.particles.splice(i, 1);
+            } else {
+                // 更新透明度
+                const lifeRatio = 1 - (age / particle.maxLifetime);
+                particle.mesh.material.opacity = lifeRatio;
+                // 粒子逐渐变小
+                const scale = 0.5 + lifeRatio * 0.5;
+                particle.mesh.scale.setScalar(scale);
+            }
+        }
+    }
+    
+    // 清除所有粒子
+    clear() {
+        for (const particle of this.particles) {
+            this.trailGroup.remove(particle.mesh);
+            particle.mesh.geometry.dispose();
+            particle.mesh.material.dispose();
+        }
+        this.particles = [];
+    }
+}
+
+// 计算边与地面(y=0平面)的夹角
+function calculateAngleWithGround(edgeStart, edgeEnd) {
+    // 边的方向向量
+    const edgeDir = new THREE.Vector3().subVectors(edgeEnd, edgeStart).normalize();
+    
+    // 地面法向量 (0, 1, 0)
+    const groundNormal = new THREE.Vector3(0, 1, 0);
+    
+    // 计算边与地面法向量的夹角
+    const angleWithNormal = Math.acos(Math.abs(edgeDir.dot(groundNormal)));
+    
+    // 边与地面的夹角 = 90度 - 与法向量的夹角
+    const angleWithGround = Math.PI / 2 - angleWithNormal;
+    
+    return Math.abs(angleWithGround);
+}
+
+// 计算边与地面(y=0平面)的交点
+// 返回 null 如果边不与地面相交
+function calculateEdgeGroundIntersection(edgeStart, edgeEnd) {
+    const y1 = edgeStart.y;
+    const y2 = edgeEnd.y;
+    
+    // 检查边是否与地面相交
+    // 两个端点必须在地面两侧（一个y>0，一个y<0）
+    if (y1 * y2 > 0) {
+        return null; // 两端点在同一侧，无交点
+    }
+    
+    // 如果两个端点都在地面上，返回中点
+    if (y1 === 0 && y2 === 0) {
+        return new THREE.Vector3().addVectors(edgeStart, edgeEnd).multiplyScalar(0.5);
+    }
+    
+    // 计算交点参数 t
+    // 使用线性插值: P = P1 + t * (P2 - P1)
+    // 当 y = 0 时: 0 = y1 + t * (y2 - y1)
+    // t = -y1 / (y2 - y1)
+    const t = -y1 / (y2 - y1);
+    
+    // 确保 t 在 [0, 1] 范围内
+    if (t < 0 || t > 1) {
+        return null;
+    }
+    
+    // 计算交点
+    const intersection = new THREE.Vector3().lerpVectors(edgeStart, edgeEnd, t);
+    intersection.y = 0; // 确保y为0
+    
+    return intersection;
+}
+
+// 获取四面体的边
+function getTetrahedronEdges(vertexPositions) {
+    // 四面体有6条边: 0-1, 0-2, 0-3, 1-2, 1-3, 2-3
+    const edgeIndices = [
+        [0, 1], [0, 2], [0, 3],
+        [1, 2], [1, 3], [2, 3]
+    ];
+    
+    const edges = [];
+    for (const [i, j] of edgeIndices) {
+        const start = new THREE.Vector3(
+            vertexPositions[i * 3],
+            vertexPositions[i * 3 + 1],
+            vertexPositions[i * 3 + 2]
+        );
+        const end = new THREE.Vector3(
+            vertexPositions[j * 3],
+            vertexPositions[j * 3 + 1],
+            vertexPositions[j * 3 + 2]
+        );
+        edges.push({ start, end, indices: [i, j] });
+    }
+    return edges;
+}
+
 // 场景设置
 const scene = new THREE.Scene();
 
@@ -317,6 +474,72 @@ cubeGroup.add(merkaba2);
 
 scene.add(cubeGroup);
 
+// 创建粒子轨迹系统
+const particleTrailSystem = new ParticleTrailSystem(scene);
+
+// 粒子生成控制变量
+let particleSpawnTimer = 0;
+const particleSpawnInterval = 0.02; // 每0.02秒生成一批粒子
+
+// 根据夹角计算粒子颜色（夹角越大颜色越亮）
+function getParticleColorByAngle(angle, isUpper) {
+    // angle范围: 0 到 PI/2
+    const normalizedAngle = angle / (Math.PI / 2);
+    
+    // 上四面体用红色系，下四面体用蓝色系
+    if (isUpper) {
+        // 红色到黄色
+        const r = 255;
+        const g = Math.floor(normalizedAngle * 200);
+        const b = 0;
+        return (r << 16) | (g << 8) | b;
+    } else {
+        // 蓝色到青色
+        const r = 0;
+        const g = Math.floor(normalizedAngle * 200);
+        const b = 255;
+        return (r << 16) | (g << 8) | b;
+    }
+}
+
+// 生成四面体边的粒子轨迹
+function generateTetrahedronParticleTrails(tetraMesh, isUpper, worldMatrix) {
+    if (!tetraMesh || !tetraMesh.geometry) return;
+    
+    const positionAttr = tetraMesh.geometry.getAttribute('position');
+    const localPositions = positionAttr.array;
+    
+    // 获取四面体的边
+    const edges = getTetrahedronEdges(localPositions);
+    
+    for (const edge of edges) {
+        // 将局部坐标转换为世界坐标
+        const worldStart = edge.start.clone().applyMatrix4(worldMatrix);
+        const worldEnd = edge.end.clone().applyMatrix4(worldMatrix);
+        
+        // 计算边与地面的交点
+        const intersection = calculateEdgeGroundIntersection(worldStart, worldEnd);
+        
+        // 只有当边与地面相交时才生成粒子
+        if (intersection) {
+            // 计算边与地面的夹角
+            const angle = calculateAngleWithGround(worldStart, worldEnd);
+            
+            // 计算粒子颜色和生命周期
+            const color = getParticleColorByAngle(angle, isUpper);
+            const lifetime = 2.0 + (angle / (Math.PI / 2)) * 3.0; // 夹角越大，粒子存活越久
+            
+            // 在交点位置生成粒子
+            // 添加一点随机偏移使轨迹更自然
+            const particlePos = intersection.clone();
+            particlePos.x += (Math.random() - 0.5) * 0.03;
+            particlePos.z += (Math.random() - 0.5) * 0.03;
+            
+            particleTrailSystem.createParticle(particlePos, color, lifetime);
+        }
+    }
+}
+
 
 
 // 控制模式：'camera' 相机控制，'object' 物体控制
@@ -496,6 +719,34 @@ function animate() {
 
     // rotateMkb(merkaba);
     rotateMkb(merkaba2);
+    
+    // 更新粒子系统
+    particleTrailSystem.update(0.016);
+    
+    // 定时生成粒子轨迹
+    particleSpawnTimer += 0.016;
+    if (particleSpawnTimer >= particleSpawnInterval) {
+        particleSpawnTimer = 0;
+        
+        // 获取上四面体和下四面体
+        const upperTetra = merkaba2.children[0];
+        const lowerTetra = merkaba2.children[1];
+        
+        // 计算世界变换矩阵（需要考虑cubeGroup和四面体自身的变换）
+        upperTetra.updateMatrixWorld(true);
+        lowerTetra.updateMatrixWorld(true);
+        
+        const upperWorldMatrix = new THREE.Matrix4();
+        const lowerWorldMatrix = new THREE.Matrix4();
+        
+        upperWorldMatrix.copy(upperTetra.matrixWorld);
+        lowerWorldMatrix.copy(lowerTetra.matrixWorld);
+        
+        // 生成粒子轨迹
+        generateTetrahedronParticleTrails(upperTetra, true, upperWorldMatrix);
+        generateTetrahedronParticleTrails(lowerTetra, false, lowerWorldMatrix);
+    }
+    
     renderer.render(scene, camera);
 
     // outlineEffect.render(scene, camera);
