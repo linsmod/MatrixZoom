@@ -8,12 +8,32 @@ import { createMerkaba2 } from './mkb2';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1a); // 深色背景
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('container').appendChild(renderer.domElement);
+
+// 创建透视相机和正交相机
+const aspect = window.innerWidth / window.innerHeight;
+const perspectiveCamera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+const frustumSize = 10;
+const orthographicCamera = new THREE.OrthographicCamera(
+    frustumSize * aspect / -2,
+    frustumSize * aspect / 2,
+    frustumSize / 2,
+    frustumSize / -2,
+    0.1,
+    1000
+);
+
+// 当前使用的相机
+let camera = perspectiveCamera;
+let currentProjectionMode = 'perspective';
+
+// 设置初始相机位置（从Z轴正方向看向原点，使Z轴正对相机）
+perspectiveCamera.position.set(0, 0, 10);
+orthographicCamera.position.set(0, 0, 10);
 
 // 创建渐变背景
 const gradientTexture = new THREE.CanvasTexture(createGradientCanvas());
@@ -151,8 +171,34 @@ controls.screenSpacePanning = false;
 controls.minDistance = 3;
 controls.maxDistance = 15;
 controls.maxPolarAngle = Math.PI / 2;
-camera.position.set(5, 5, 5);
 controls.update();
+
+// 投影模式切换
+const projectionSelect = document.getElementById('projectionMode');
+
+function switchCamera(mode) {
+    const previousCamera = camera;
+    
+    if (mode === 'perspective') {
+        camera = perspectiveCamera;
+    } else {
+        camera = orthographicCamera;
+    }
+    
+    // 同步相机位置和朝向
+    camera.position.copy(previousCamera.position);
+    camera.quaternion.copy(previousCamera.quaternion);
+    
+    // 更新控制器
+    controls.object = camera;
+    controls.update();
+    
+    currentProjectionMode = mode;
+}
+
+projectionSelect.addEventListener('change', (e) => {
+    switchCamera(e.target.value);
+});
 
 // 魔方颜色
 const colors = [
@@ -229,8 +275,8 @@ createDiagonal();
 
 
 // 创建梅尔卡巴
-const merkaba = createMerkaba();
-cubeGroup.add(merkaba);
+// const merkaba = createMerkaba();
+// cubeGroup.add(merkaba);
 
 
 // 新增：将cubeGroup的对角线旋转到世界z轴方向
@@ -258,6 +304,33 @@ scene.add(cubeGroup);
 
 
 
+// 控制模式：'camera' 相机控制，'object' 物体控制
+// 默认相机控制，按住 Ctrl 切换到物体控制
+let controlMode = 'camera';
+const controlModeDisplay = document.getElementById('controlModeDisplay');
+
+// 更新控制模式显示
+function updateControlModeDisplay() {
+    controlModeDisplay.textContent = controlMode === 'camera' ? '相机控制' : '物体控制';
+}
+
+// Ctrl 键控制模式切换
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Control' && controlMode === 'camera') {
+        controlMode = 'object';
+        controls.enabled = false;
+        updateControlModeDisplay();
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'Control' && controlMode === 'object') {
+        controlMode = 'camera';
+        controls.enabled = true;
+        updateControlModeDisplay();
+    }
+});
+
 // 鼠标控制变量
 let isDragging = false;
 let previousMousePosition = {
@@ -268,9 +341,8 @@ let previousMousePosition = {
 // 鼠标事件监听
 renderer.domElement.addEventListener('mousedown', (event) => {
     // 只响应左键点击
-    if (event.button === 0) {
+    if (event.button === 0 && controlMode === 'object') {
         isDragging = true;
-        controls.enabled = false; // 禁用相机控制
         previousMousePosition = {
             x: event.clientX,
             y: event.clientY
@@ -286,14 +358,14 @@ renderer.domElement.addEventListener('mousemove', (event) => {
         y: event.clientY - previousMousePosition.y
     };
 
-    // 获取相机的右向量和上向量（世界坐标系）  
+    // 获取相机的右向量和上向量（世界坐标系）
     const cameraRight = new THREE.Vector3();
     const cameraUp = new THREE.Vector3();
     camera.matrix.extractBasis(cameraRight, cameraUp, new THREE.Vector3());
 
-    // 绕相机右轴旋转（对应鼠标X移动）  
+    // 绕相机右轴旋转（对应鼠标X移动）
     cubeGroup.rotateOnWorldAxis(cameraUp, deltaMove.x * 0.005);
-    // 绕相机上轴旋转（对应鼠标Y移动）  
+    // 绕相机上轴旋转（对应鼠标Y移动）
     cubeGroup.rotateOnWorldAxis(cameraRight, deltaMove.y * 0.005);
 
     previousMousePosition = {
@@ -306,18 +378,18 @@ renderer.domElement.addEventListener('mouseup', (event) => {
     // 只响应左键释放
     if (event.button === 0) {
         isDragging = false;
-        controls.enabled = true; // 重新启用相机控制
     }
 });
 
 // 触摸事件支持
 renderer.domElement.addEventListener('touchstart', (event) => {
-    isDragging = true;
-    controls.enabled = false; // 禁用相机控制
-    previousMousePosition = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
-    };
+    if (controlMode === 'object') {
+        isDragging = true;
+        previousMousePosition = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+    }
 });
 
 renderer.domElement.addEventListener('touchmove', (event) => {
@@ -328,14 +400,15 @@ renderer.domElement.addEventListener('touchmove', (event) => {
         y: event.touches[0].clientY - previousMousePosition.y
     };
 
-    // 按照世界坐标系旋转
-    const worldRotationMatrix = new THREE.Matrix4();
-    worldRotationMatrix.makeRotationY(deltaMove.x * 0.005);
-    worldRotationMatrix.multiply(new THREE.Matrix4().makeRotationX(deltaMove.y * 0.005));
+    // 获取相机的右向量和上向量（世界坐标系）
+    const cameraRight = new THREE.Vector3();
+    const cameraUp = new THREE.Vector3();
+    camera.matrix.extractBasis(cameraRight, cameraUp, new THREE.Vector3());
 
-    // 应用世界坐标系旋转
-    cubeGroup.matrix.multiply(worldRotationMatrix);
-    cubeGroup.matrix.decompose(cubeGroup.position, cubeGroup.quaternion, cubeGroup.scale);
+    // 绕相机右轴旋转（对应鼠标X移动）
+    cubeGroup.rotateOnWorldAxis(cameraUp, deltaMove.x * 0.005);
+    // 绕相机上轴旋转（对应鼠标Y移动）
+    cubeGroup.rotateOnWorldAxis(cameraRight, deltaMove.y * 0.005);
 
     previousMousePosition = {
         x: event.touches[0].clientX,
@@ -345,7 +418,6 @@ renderer.domElement.addEventListener('touchmove', (event) => {
 
 renderer.domElement.addEventListener('touchend', () => {
     isDragging = false;
-    controls.enabled = true; // 重新启用相机控制
 });
 // 轮廓效果
 // 初始化轮廓效果
@@ -367,11 +439,11 @@ speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = rotationSpeed.toFixed(2);
 });
 
-function rotateMkb(merkaba) {
+function rotateMkb(mkb) {
 
 
-    const upperTetra = merkaba.children[0];
-    const lowerTetra = merkaba.children[1];
+    const upperTetra = mkb.children[0];
+    const lowerTetra = mkb.children[1];
 
     // 使用梅尔卡巴的中轴（对角线）作为旋转轴
     const axis = new THREE.Vector3(1, 1, 1).normalize();
@@ -387,7 +459,7 @@ function rotateMkb(merkaba) {
     lowerTetra.quaternion.multiplyQuaternions(quaternion, lowerTetra.quaternion);
 
     // 强制更新边和法线
-    merkaba.traverse(child => {
+    mkb.traverse(child => {
         if (child.isMesh) {
             child.geometry.computeVertexNormals(); // 更新法线
         }
@@ -398,7 +470,7 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    rotateMkb(merkaba);
+    // rotateMkb(merkaba);
     rotateMkb(merkaba2);
     renderer.render(scene, camera);
 
@@ -407,9 +479,22 @@ function animate() {
 
 // 窗口大小调整
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const newAspect = width / height;
+    
+    // 更新透视相机
+    perspectiveCamera.aspect = newAspect;
+    perspectiveCamera.updateProjectionMatrix();
+    
+    // 更新正交相机
+    orthographicCamera.left = frustumSize * newAspect / -2;
+    orthographicCamera.right = frustumSize * newAspect / 2;
+    orthographicCamera.top = frustumSize / 2;
+    orthographicCamera.bottom = frustumSize / -2;
+    orthographicCamera.updateProjectionMatrix();
+    
+    renderer.setSize(width, height);
 });
 
 animate();

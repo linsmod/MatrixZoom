@@ -120,3 +120,85 @@ button:active {
 #reset:hover {
     background: linear-gradient(45deg, #388E3C, #2E7D32);
 }
+
+/* 侧边栏样式 */
+#sidebar {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    min-width: 160px;
+}
+
+.sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: white;
+}
+
+.sidebar-group label {
+    font-size: 13px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sidebar-group select {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+}
+
+.sidebar-group select:hover {
+    border-color: #2196F3;
+}
+
+.sidebar-group #controlModeDisplay {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #2196F3;
+    color: white;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.sidebar-group.tips {
+    margin-top: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+}
+
+.tip-title {
+    font-size: 13px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.tip-item {
+    font-size: 12px;
+    color: #ccc;
+    line-height: 1.5;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+}
+
+.tip-item:last-child {
+    border-bottom: none;
+}

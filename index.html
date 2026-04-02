@@ -14,6 +14,25 @@
             <input type="range" id="rotationSpeed" min="0" max="2" step="0.001" value="0.01">
         </div>
     </div>
+    <div id="sidebar">
+        <div class="sidebar-group">
+            <label for="projectionMode">投影模式</label>
+            <select id="projectionMode">
+                <option value="perspective">透视投影</option>
+                <option value="orthographic">正交投影</option>
+            </select>
+        </div>
+        <div class="sidebar-group">
+            <label>控制模式 CTRL</label>
+            <div id="controlModeDisplay">相机控制</div>
+        </div>
+        <div class="sidebar-group tips">
+            <div class="tip-title">交互说明</div>
+            <div class="tip-item">🖱️ 左键拖动<br>旋转相机视角</div>
+            <div class="tip-item">🔄 滚轮<br>缩放视图</div>
+            <div class="tip-item">⌨️ Ctrl + 左键<br>旋转物体</div>
+        </div>
+    </div>
     <script type="module" src="mkb.js"></script>
     <script type="module" src="main.js"></script>
 </body>
