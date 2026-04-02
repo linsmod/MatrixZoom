@@ -1092,12 +1092,12 @@ speedSlider.addEventListener('input', (e) => {
     saveParamsToURL();
 });
 
-// 鼠标悬停在滑块上时，支持滚轮调整
-speedSlider.parentElement.addEventListener('wheel', (e) => {
+// 鼠标悬停在controls区域时，支持滚轮调整频率
+document.getElementById('controls').addEventListener('wheel', (e) => {
     e.preventDefault();
     const step = e.altKey ? 0.01 : 0.1;
     const delta = e.deltaY > 0 ? -step : step;
-    let roteFreq =rotationFrequency + delta;
+    let roteFreq = rotationFrequency + delta;
     let roteSpeed = roteFreq * Math.PI * 2;
     let maxSpeed = parseFloat(speedSlider.getAttribute('max'));
     if(roteSpeed<0){
@@ -1113,6 +1113,7 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
     speedValue.textContent = roteFreq.toFixed(2);
     if(paused)
         pendingTempFrames = parseInt(rotationFreq*tempCycle);
+    saveParamsToURL();
 });
 
 // 空格键控制旋转暂停/继续
