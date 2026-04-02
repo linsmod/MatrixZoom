@@ -16,7 +16,7 @@ class SimulationSystem {
         this.ghostGroup = new THREE.Group();
         this.scene.add(this.ghostGroup);
         this.frames = 0; // 模拟帧计数
-        this.lifetime = 200;
+        this.lifetime = 180;
         this.templates = new Map(); // 模板存储：key -> { geometry, materialConfig }
     }
 
@@ -667,7 +667,7 @@ cubeGroup.add(groupLight);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const simulationSystem = new SimulationSystem(scene, 120, 200); // mesh最大200个，line最大200个
+const simulationSystem = new SimulationSystem(scene, 240, 100); // mesh最大200个，line最大200个
 
 // 注册梅尔卡巴模板
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
@@ -810,7 +810,7 @@ function saveParamsToURL() {
     const params = new URLSearchParams();
     
     // 保存所有参数
-    params.set('freq', rotationFrequency.toFixed(2));
+    params.set('freq', rotationFrequency.toFixed(3));
     params.set('proj', currentProjectionMode);
     params.set('emissive', currentEmissiveIntensity.toFixed(0));
     params.set('tiltZ', currentTiltAngleZ.toFixed(1));
@@ -840,8 +840,8 @@ function loadParamsFromURL() {
         if (!isNaN(freq) && freq >= 0 && freq <= 100) {
             rotationFrequency = freq;
             rotationSpeed = rotationFrequency * Math.PI * 2;
-            speedSlider.value = freq.toFixed(2);
-            speedValue.textContent = freq.toFixed(2);
+            speedSlider.value = freq.toFixed(3);
+            speedValue.textContent = freq.toFixed(3);
         }
     }
     
