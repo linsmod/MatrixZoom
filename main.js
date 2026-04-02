@@ -692,7 +692,7 @@ cubeGroup.add(groupLight);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const simulationSystem = new SimulationSystem(scene, 240, 100); // mesh最大200个，line最大200个
+const simulationSystem = new SimulationSystem(scene, 60, 600); // mesh最大200个，line最大200个
 
 // 注册梅尔卡巴模板
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
