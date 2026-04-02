@@ -39,9 +39,11 @@ class SimulationSystem {
             opacity: opacity,
             blending: THREE.AdditiveBlending,
             depthWrite: false, // 禁用深度写入，让线段能透过显示
+            depthTest: false, // 禁用深度测试，避免GPU绘制闪烁
         });
 
         const mesh = new THREE.Mesh(template.geometry.clone(), material);
+        mesh.renderOrder = 0; // 确保渲染顺序一致
         mesh.applyMatrix4(matrixWorld);
         return mesh;
     }
