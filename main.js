@@ -454,7 +454,7 @@ scene.add(yLabel);
 scene.add(zLabel);
 
 // 添加环境光
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
 scene.add(ambientLight);
 
 // 添加点光源
