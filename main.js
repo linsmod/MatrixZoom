@@ -493,6 +493,7 @@ function switchCamera(mode) {
 
 projectionSelect.addEventListener('change', (e) => {
     switchCamera(e.target.value);
+    saveParamsToURL();
 });
 
 // 魔方颜色
@@ -644,6 +645,7 @@ emissiveSliderValueElem.addEventListener('input', (e) => {
     const value = parseFloat(e.target.value);
     emissiveValueLabel.textContent = value.toFixed(0);
     updateEmissiveIntensity(value);
+    saveParamsToURL();
 });
 
 // 存储上一帧的交点位置，用于绘制线段
@@ -689,6 +691,7 @@ tiltAngleZSlider.addEventListener('input', (e) => {
     currentTiltAngleZ = parseFloat(e.target.value);
     tiltAngleZValueLabel.textContent = currentTiltAngleZ.toFixed(1);
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+    saveParamsToURL();
 });
 
 // 监听X轴slider变化
@@ -696,6 +699,7 @@ tiltAngleXSlider.addEventListener('input', (e) => {
     currentTiltAngleX = parseFloat(e.target.value);
     tiltAngleXValueLabel.textContent = currentTiltAngleX.toFixed(1);
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+    saveParamsToURL();
 });
 
 // 滚轮调整Z轴倾斜角
@@ -732,6 +736,7 @@ document.getElementById('resetTiltZ').addEventListener('click', () => {
     tiltAngleZSlider.value = '0.0';
     tiltAngleZValueLabel.textContent = '0.0';
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+    saveParamsToURL();
 });
 
 document.getElementById('resetTiltX').addEventListener('click', () => {
@@ -739,7 +744,81 @@ document.getElementById('resetTiltX').addEventListener('click', () => {
     tiltAngleXSlider.value = '0.0';
     tiltAngleXValueLabel.textContent = '0.0';
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+    saveParamsToURL();
 });
+
+// ========== URL参数保存与加载 ==========
+function saveParamsToURL() {
+    const params = new URLSearchParams();
+    
+    // 保存所有参数
+    params.set('freq', rotationFrequency.toFixed(2));
+    params.set('proj', currentProjectionMode);
+    params.set('emissive', currentEmissiveIntensity.toFixed(0));
+    params.set('tiltZ', currentTiltAngleZ.toFixed(1));
+    params.set('tiltX', currentTiltAngleX.toFixed(1));
+    
+    // 更新URL而不刷新页面
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newURL);
+}
+
+function loadParamsFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    
+    // 解析旋转频率
+    if (params.has('freq')) {
+        const freq = parseFloat(params.get('freq'));
+        if (!isNaN(freq) && freq >= 0 && freq <= 100) {
+            rotationFrequency = freq;
+            rotationSpeed = rotationFrequency * Math.PI * 2;
+            speedSlider.value = freq.toFixed(2);
+            speedValue.textContent = freq.toFixed(2);
+        }
+    }
+    
+    // 解析投影模式
+    if (params.has('proj')) {
+        const proj = params.get('proj');
+        if (proj === 'perspective' || proj === 'orthographic') {
+            projectionSelect.value = proj;
+            switchCamera(proj);
+        }
+    }
+    
+    // 解析发光强度
+    if (params.has('emissive')) {
+        const emissive = parseFloat(params.get('emissive'));
+        if (!isNaN(emissive) && emissive >= 20 && emissive <= 800) {
+            updateEmissiveIntensity(emissive);
+            emissiveSliderValueElem.value = emissive.toFixed(0);
+            emissiveValueLabel.textContent = emissive.toFixed(0);
+        }
+    }
+    
+    // 解析Z轴倾斜角
+    if (params.has('tiltZ')) {
+        const tiltZ = parseFloat(params.get('tiltZ'));
+        if (!isNaN(tiltZ) && tiltZ >= 0 && tiltZ <= 90) {
+            currentTiltAngleZ = tiltZ;
+            tiltAngleZSlider.value = tiltZ.toFixed(1);
+            tiltAngleZValueLabel.textContent = tiltZ.toFixed(1);
+        }
+    }
+    
+    // 解析X轴倾斜角
+    if (params.has('tiltX')) {
+        const tiltX = parseFloat(params.get('tiltX'));
+        if (!isNaN(tiltX) && tiltX >= -90 && tiltX <= 90) {
+            currentTiltAngleX = tiltX;
+            tiltAngleXSlider.value = tiltX.toFixed(1);
+            tiltAngleXValueLabel.textContent = tiltX.toFixed(1);
+        }
+    }
+    
+    // 应用倾斜角
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+}
 
 // 根据夹角计算粒子颜色（夹角越大颜色越亮）
 function getParticleColorByAngle(angle, isUpper) {
@@ -968,6 +1047,7 @@ speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = rotationFrequency.toFixed(2);
     if(paused)
         pendingTempFrames = parseInt(rotationFrequency*tempCycle);
+    saveParamsToURL();
 });
 
 // 鼠标悬停在滑块上时，支持滚轮调整
@@ -1137,3 +1217,6 @@ window.addEventListener('resize', () => {
 });
 
 animate();
+
+// 页面加载时从URL解析参数
+loadParamsFromURL();
