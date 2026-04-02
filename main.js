@@ -1013,6 +1013,7 @@ renderer.domElement.addEventListener('mouseup', (event) => {
     // 只响应左键释放
     if (event.button === 0) {
         isDragging = false;
+        saveParamsToURL();
     }
 });
 
@@ -1060,6 +1061,7 @@ renderer.domElement.addEventListener('touchmove', (event) => {
 
 renderer.domElement.addEventListener('touchend', () => {
     isDragging = false;
+    saveParamsToURL();
 });
 // 轮廓效果
 // 初始化轮廓效果
