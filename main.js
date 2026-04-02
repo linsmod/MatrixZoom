@@ -337,6 +337,29 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('container').appendChild(renderer.domElement);
 
+// ========== 侧边摄像机视图 ==========
+// 创建第二个渲染器（用于侧边固定机位视图）
+const sideRenderer = new THREE.WebGLRenderer({ antialias: true });
+sideRenderer.setSize(200, 200);
+sideRenderer.shadowMap.enabled = true;
+sideRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('sideCamera').appendChild(sideRenderer.domElement);
+
+// 创建侧边固定机位摄像机（斜着俯瞰）
+const sideCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+// 设置斜着俯瞰的位置：右上方，看向原点
+sideCamera.position.set(8, 10, 8);
+sideCamera.lookAt(0, 0, 0);
+
+// 侧边摄像机的 OrbitControls
+const sideControls = new OrbitControls(sideCamera, sideRenderer.domElement);
+sideControls.enableDamping = true;
+sideControls.dampingFactor = 0.05;
+sideControls.screenSpacePanning = false;
+sideControls.minDistance = 3;
+sideControls.maxDistance = 30;
+sideControls.enabled = true; // 默认启用
+
 // 创建透视相机和正交相机
 const aspect = window.innerWidth / window.innerHeight;
 const perspectiveCamera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
@@ -1278,6 +1301,7 @@ function updateAxisLabelsOpacity() {
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    sideControls.update(); // 更新侧边摄像机控制器
     
     // 更新坐标轴标签透明度
     updateAxisLabelsOpacity();
@@ -1305,6 +1329,9 @@ function animate() {
     }
     // 渲染场景
     renderer.render(scene, camera);
+    
+    // 渲染侧边摄像机视图
+    sideRenderer.render(scene, sideCamera);
 }
 
 // 窗口大小调整
