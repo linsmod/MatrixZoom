@@ -60,6 +60,9 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
         side: THREE.DoubleSide,
         emissive: color1,
         emissiveIntensity: 2,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
       }
     },
     lowerTetra: {
@@ -69,6 +72,9 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
         side: THREE.DoubleSide,
         emissive: color2,
         emissiveIntensity: 5,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: 1,
       }
     }
   };
@@ -89,6 +95,9 @@ export function createMerkaba2(color1, color2) {
     opacity: 0, // 不可见，仅用于计算
     emissive: color1 || 'purple',
     emissiveIntensity: 2,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
   });
   const lowerMaterial = new THREE.MeshPhongMaterial({
     color: 0x4ECDC4,
@@ -97,6 +106,9 @@ export function createMerkaba2(color1, color2) {
     opacity: 0, // 不可见，仅用于计算
     emissive: color2 || 0x4ECDC4,
     emissiveIntensity: 5,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: 1,
   });
 
   const upperMesh = new THREE.Mesh(upperGeo, upperMaterial);

@@ -549,7 +549,7 @@ cubeGroup.add(merkaba2);
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
-const simulationSystem = new SimulationSystem(scene, 300); // 最大残影数（增加以支持更密集拖影）
+const simulationSystem = new SimulationSystem(scene, 400); // 最大残影数（增加以支持更密集拖影）
 
 // 注册梅尔卡巴模板
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
@@ -872,7 +872,7 @@ function simulateFrame() {
     generateTetrahedronLineTrails(lowerTetra, false, lowerWorldMatrix, previousIntersections.lower, rotationSpeed * 3);
 
     // 生成快照（从模板创建，统一透明度策略）
-    simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, 1000);
+    simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, 5000);
     // 残影系统更新
     simulationSystem.stepSimulation();
 }
