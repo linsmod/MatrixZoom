@@ -85,9 +85,11 @@ function createGround() {
     const groundMaterial = new THREE.MeshPhongMaterial({
         color: 0x2196F3,
         side: THREE.DoubleSide,
+        opacity: 1,
+        blendColor: 'green',
+        blendIntensity: 0.5,
+        blending: THREE.MultiplyBlending,
         transparent: true,
-        opacity: 0.3,
-        depthWrite: false,  // 确保透明物体正确渲染
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;

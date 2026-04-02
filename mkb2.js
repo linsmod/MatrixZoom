@@ -33,7 +33,7 @@ export function createMerkaba2(color1, color2) {
   lowerGeo.setIndex(new THREE.BufferAttribute(faces, 1));
   lowerGeo.computeVertexNormals();
 
-  // 创建材质和网格 - 恢复原来的 MeshPhongMaterial
+  // 创建材质和网格
   const upperMaterial = new THREE.MeshPhongMaterial({
     color: 0xFF6B6B, // 珊瑚红
     side: THREE.DoubleSide,
