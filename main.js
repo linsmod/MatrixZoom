@@ -606,6 +606,11 @@ alignDiagonalToZAxis(); // 执行旋转
 const merkaba2 = createMerkaba2('blue', 'orange');
 cubeGroup.add(merkaba2);
 
+// 在cubeGroup中心添加点光源，实现整体发光效果
+const groupLight = new THREE.PointLight(0xffffff, 120, 115);
+groupLight.position.set(0, 0, 0);
+cubeGroup.add(groupLight);
+
 scene.add(cubeGroup);
 
 // 创建统一残影系统（同时处理网格残影和线段拖尾）
