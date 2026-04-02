@@ -237,7 +237,7 @@ button:active {
 /* Paused 提示样式 */
 .paused-indicator {
     position: fixed;
-    bottom: 100px;
+    bottom: 50px;
     left: 50%;
     transform: translateX(-50%);
     color: #ff9800;

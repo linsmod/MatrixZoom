@@ -174,9 +174,8 @@ class SimulationSystem {
     }
 
     // 推进模拟一步
-    stepSimulation() {
+    simulationUpdateAnim() {
         this.frames++;
-
         // 更新所有影子的透明度衰减
         for (let i = this.ghosts.length - 1; i >= 0; i--) {
             const ghostData = this.ghosts[i];
@@ -873,6 +872,11 @@ speedSlider.addEventListener('input', (e) => {
     rotationFrequency = parseFloat(e.target.value);
     rotationSpeed = rotationFrequency * Math.PI * 2;
     speedValue.textContent = rotationFrequency.toFixed(2);
+    if(paused && rotationFrequency > 0){
+        for(let i = 0; i < rotationFrequency; i++){
+            stepSimulate();
+        }
+    }
 });
 
 // 鼠标悬停在滑块上时，支持滚轮调整
@@ -893,7 +897,15 @@ speedSlider.parentElement.addEventListener('wheel', (e) => {
     rotationSpeed = roteSpeed;
     speedSlider.value = roteFreq;
     speedValue.textContent = roteFreq.toFixed(2);
-    simulateFrame();
+    if(paused && rotationFrequency > 0){
+        console.log({
+            "roteFreq:": roteFreq,
+            "roteSpeed:": roteSpeed,
+        });
+        for(let i = 0; i < rotationFrequency; i++){
+            stepSimulate();
+        }
+    }
 });
 
 // 空格键控制旋转暂停/继续
@@ -932,8 +944,7 @@ const ghostCountDisplay = document.getElementById('ghostCount');
 // 帧率更新间隔（毫秒）
 const fpsUpdateInterval = 500;
 
-// 旋转模拟函数 - 由高速定时器调用（永不停止）
-function simulateFrame() {
+function stepSimulate() {
     const upperTetra = merkaba2.children[0];
     const lowerTetra = merkaba2.children[1];
 
@@ -970,11 +981,11 @@ function simulateFrame() {
     // 生成快照（从模板创建，统一透明度策略）
     simulationSystem.addMerkabaSnapshot(upperWorldMatrix, lowerWorldMatrix, 0.3, simulationSystem.lifetime);
     // 残影系统更新
-    simulationSystem.stepSimulation();
+    simulationSystem.simulationUpdateAnim();
 }
 
 // 启动高速模拟定时器
-const simulationTimer = setInterval(()=>paused? null : simulateFrame(), 0);
+const simulationTimer = setInterval(()=>paused? null : stepSimulate(), 0);
 
 // 渲染循环 - 只负责渲染，与模拟分离
 function animate() {
