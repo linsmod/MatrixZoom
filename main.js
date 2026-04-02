@@ -40,7 +40,7 @@ class SimulationSystem {
             ...template.materialConfig,
             transparent: true,
             opacity: opacity,
-            blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending, // 使用正常混合模式，避免发光效果
             depthWrite: false, // 禁用深度写入，让线段能透过显示
             depthTest: false, // 禁用深度测试，避免GPU绘制闪烁
             emissiveIntensity: adjustedEmissiveIntensity, // 发光强度随透明度衰减
@@ -76,9 +76,6 @@ class SimulationSystem {
         // 获取模板的基础发光强度用于后续衰减
         const template = this.templates.get(templateKey);
         const baseEmissiveIntensity = template ? (template.materialConfig.emissiveIntensity || 0) : 0;
-        if(baseEmissiveIntensity>0){
-            debugger;
-        }
         this.ghostGroup.add(mesh);
         this.ghosts.push({
             object: mesh,
@@ -592,6 +589,35 @@ const simulationSystem = new SimulationSystem(scene, 400); // 最大残影数（
 const merkabaTemplates = getMerkabaTemplates('blue', 'orange');
 simulationSystem.registerTemplate('upperTetra', merkabaTemplates.upperTetra.geometry, merkabaTemplates.upperTetra.materialConfig);
 simulationSystem.registerTemplate('lowerTetra', merkabaTemplates.lowerTetra.geometry, merkabaTemplates.lowerTetra.materialConfig);
+
+// 发光强度控制
+let currentEmissiveIntensity = 0;
+const emissiveSlider = document.getElementById('emissiveIntensity');
+const emissiveValue = document.getElementById('emissiveValue');
+
+// 更新模板的发光强度
+function updateEmissiveIntensity(intensity) {
+    currentEmissiveIntensity = intensity;
+    
+    // 更新模板配置
+    const upperTemplate = simulationSystem.templates.get('upperTetra');
+    const lowerTemplate = simulationSystem.templates.get('lowerTetra');
+    
+    if (upperTemplate) {
+        upperTemplate.materialConfig.emissiveIntensity = intensity;
+        upperTemplate.materialConfig.emissive = intensity > 0 ? 0x0000ff : 0x000000; // 蓝色发光
+    }
+    if (lowerTemplate) {
+        lowerTemplate.materialConfig.emissiveIntensity = intensity;
+        lowerTemplate.materialConfig.emissive = intensity > 0 ? 0xff7f00 : 0x000000; // 橙色发光
+    }
+}
+
+emissiveSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    emissiveValue.textContent = value.toFixed(2);
+    updateEmissiveIntensity(value);
+});
 
 // 模拟系统帧计数
 let simulationFrame = 0;

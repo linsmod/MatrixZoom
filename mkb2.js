@@ -99,8 +99,8 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
       materialConfig: {
         color: 0xFF6B6B, // 珊瑚红
         side: THREE.DoubleSide,
-        emissive: webColorToColor(color1),
-        emissiveIntensity: 0, // 降低发光强度
+        emissive: 0x000000, // 黑色，不发光
+        emissiveIntensity: 0, // 发光强度为0
         polygonOffset: true,
         polygonOffsetFactor: 1,
         polygonOffsetUnits: 1,
@@ -111,8 +111,8 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
       materialConfig: {
         color: 0x4ECDC4, // 蒂芙尼蓝
         side: THREE.DoubleSide,
-        emissive: webColorToColor(color2),
-        emissiveIntensity: 0, // 降低发光强度
+        emissive: 0x000000, // 黑色，不发光
+        emissiveIntensity: 0, // 发光强度为0
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: 1,
