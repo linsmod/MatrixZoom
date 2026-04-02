@@ -156,6 +156,37 @@ button:active {
     letter-spacing: 1px;
 }
 
+.slider-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.slider-row label {
+    margin-bottom: 0;
+}
+
+.reset-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #aaa;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.reset-btn:hover {
+    background: #333;
+    color: #fff;
+    border-color: #888;
+}
+
 .sidebar-group select {
     padding: 8px 12px;
     font-size: 14px;

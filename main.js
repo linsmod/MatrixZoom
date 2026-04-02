@@ -726,6 +726,21 @@ tiltAngleXSlider.parentElement.addEventListener('wheel', (e) => {
     setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
 });
 
+// 重置按钮事件
+document.getElementById('resetTiltZ').addEventListener('click', () => {
+    currentTiltAngleZ = 0;
+    tiltAngleZSlider.value = '0.0';
+    tiltAngleZValueLabel.textContent = '0.0';
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+});
+
+document.getElementById('resetTiltX').addEventListener('click', () => {
+    currentTiltAngleX = 0;
+    tiltAngleXSlider.value = '0.0';
+    tiltAngleXValueLabel.textContent = '0.0';
+    setTiltAngles(currentTiltAngleZ, currentTiltAngleX);
+});
+
 // 根据夹角计算粒子颜色（夹角越大颜色越亮）
 function getParticleColorByAngle(angle, isUpper) {
     // angle范围: 0 到 PI/2
