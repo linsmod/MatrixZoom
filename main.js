@@ -401,6 +401,48 @@ function createGround() {
 
 createGround();
 
+// 在地板上添加 Merkaba 文字
+function createGroundText() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    
+    // 黑色背景
+    context.fillStyle = '#000000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制发光效果
+    context.shadowColor = '#00ffff';
+    context.shadowBlur = 30;
+    context.fillStyle = '#00ffff';
+    context.font = 'bold 80px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
+    
+    // 再绘制一层白色核心
+    context.shadowBlur = 0;
+    context.fillStyle = '#ffffff';
+    context.fillText('Merkaba', canvas.width / 2, canvas.height / 2);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const geometry = new THREE.PlaneGeometry(6, 1.5);
+    const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide
+    });
+    
+    const textMesh = new THREE.Mesh(geometry, material);
+    textMesh.rotation.x = -Math.PI / 2;
+    textMesh.position.set(0, 0.02, -4);
+    scene.add(textMesh);
+}
+
+createGroundText();
+
 // 添加坐标轴
 const axesHelper = new THREE.AxesHelper(2);
 scene.add(axesHelper);
