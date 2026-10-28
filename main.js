@@ -1,11 +1,3 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { OutlineEffect } from 'three/examples/jsm/Addons.js';
-import { createMerkaba2, getMerkabaTemplates } from './mkb2';
-import { Line2 } from 'three/examples/jsm/lines/Line2.js';
-import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
-
 // 统一的影子系统 - 所有对象都从模板生成，不再区分本体和影子
 class SimulationSystem {
     constructor(scene, maxMeshes = 200, maxLines = 200) {
@@ -101,7 +93,7 @@ class SimulationSystem {
         }
 
         // 使用 LineGeometry 和 LineMaterial 实现粗线条
-        const lineGeometry = new LineGeometry();
+        const lineGeometry = new THREE.LineGeometry();
         const positions = new Float32Array([
             start.x, 0.02, start.z,
             end.x, 0.02, end.z
@@ -109,7 +101,7 @@ class SimulationSystem {
         lineGeometry.setPositions(positions);
         
         const adjustedOpacity = this.calculateAdjustedOpacity(opacity);
-        const lineMaterial = new LineMaterial({
+        const lineMaterial = new THREE.LineMaterial({
             color: color,
             linewidth: 3, // 线宽（像素）
             transparent: true,
@@ -120,7 +112,7 @@ class SimulationSystem {
             resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
         });
 
-        const line = new Line2(lineGeometry, lineMaterial);
+        const line = new THREE.Line2(lineGeometry, lineMaterial);
         line.computeLineDistances();
         line.renderOrder = 1; // 确保线段在网格之后渲染
         this.ghostGroup.add(line);
@@ -352,7 +344,7 @@ sideCamera.position.set(5, 6, 5);
 sideCamera.lookAt(0, 0, 0);
 
 // 侧边摄像机的 OrbitControls
-const sideControls = new OrbitControls(sideCamera, sideRenderer.domElement);
+const sideControls = new THREE.OrbitControls(sideCamera, sideRenderer.domElement);
 sideControls.enableDamping = true;
 sideControls.dampingFactor = 0.05;
 sideControls.screenSpacePanning = false;
@@ -533,7 +525,7 @@ pointLight2.castShadow = true;
 scene.add(pointLight2);
 
 // 控制器设置
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.screenSpacePanning = false;
@@ -1149,16 +1141,6 @@ renderer.domElement.addEventListener('touchend', () => {
     isDragging = false;
     saveParamsToURL();
 });
-// 轮廓效果
-// 初始化轮廓效果
-const outlineEffect = new OutlineEffect(renderer, {
-    defaultThickness: 0.005,
-    defaultColor: [0, 1, 0],
-    defaultAlpha: 1,
-});
-outlineEffect.enabled = true; // 启用轮廓效果
-outlineEffect.autoClear = false; // 设置是否自动清除之前的渲染结果，通常设置为false以保持之前的渲染结果不变。
-
 // 旋转速度控制
 let rotationFrequency = 0.1; // 圈数/帧（每模拟帧旋转的圈数）
 let pendingTempFrames = 0;

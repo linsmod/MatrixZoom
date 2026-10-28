@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-export function createBackground () {
+function createBackground () {
     // 创建渐变画布
     const canvas = document.createElement('canvas');
     canvas.width = 128;

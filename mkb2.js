@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 /**
  * 将 Web 颜色名称转换为 RGB 对象或十六进制数字
  * 仅支持标准 Web/CSS 颜色名称（16种基础色）
@@ -92,7 +91,7 @@ function createLowerTetraGeometry() {
 }
 
 // 导出模板数据（几何体和材质配置）
-export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
+function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
   return {
     upperTetra: {
       geometry: createUpperTetraGeometry(),
@@ -122,7 +121,7 @@ export function getMerkabaTemplates(color1 = 'blue', color2 = 'orange') {
 }
 
 // 保留原函数用于创建控制用的本体（不可见，仅用于计算）
-export function createMerkaba2(color1, color2) {
+function createMerkaba2(color1, color2) {
   const group = new THREE.Group();
   const templates = getMerkabaTemplates(color1, color2);
 
